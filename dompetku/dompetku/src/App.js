@@ -23,10 +23,15 @@ const fmt = (n) => {
   return `Rp ${n.toLocaleString("id")}`;
 };
 
+const fmtLong = (n) => {
+  if (!n) return "Rp 0";
+  return `Rp ${n.toLocaleString("id")}`;
+};
+
 const fmtDate = (ts) => {
   if (!ts) return "";
   const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 };
 
 const CATEGORY_ICONS = {
@@ -37,9 +42,9 @@ const CATEGORY_ICONS = {
 };
 
 const CATEGORY_COLORS = {
-  "Makanan & Minuman": "#10b981", "Transportasi": "#3b82f6", "Tagihan & Utilitas": "#f59e0b",
+  "Makanan & Minuman": "#22c55e", "Transportasi": "#3b82f6", "Tagihan & Utilitas": "#f59e0b",
   "Belanja": "#ec4899", "Kesehatan": "#34d399", "Pendidikan": "#8b5cf6",
-  "Hiburan": "#f97316", "Tabungan": "#60a5fa", "Pemasukan": "#10b981",
+  "Hiburan": "#f97316", "Tabungan": "#60a5fa", "Pemasukan": "#22c55e",
   "Hutang": "#ef4444", "Piutang": "#fbbf24", "Lainnya": "#94a3b8"
 };
 
@@ -189,7 +194,7 @@ function LoginPage() {
       <div className="login-card">
         <div className="login-logo">💰</div>
         <h1 className="login-title">Dompetku</h1>
-        <p className="login-sub">Catat keuanganmu dengan mudah</p>
+        <p className="login-sub">Kelola keuanganmu dengan lebih bijak</p>
 
         <div className="login-tabs">
           <button className={`login-tab ${mode === "login" ? "active" : ""}`} onClick={() => { setMode("login"); setError(""); }}>Masuk</button>
@@ -220,8 +225,9 @@ function LoginPage() {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
-function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal }) {
+function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, onAddTxn }) {
   const now = new Date();
+
   const thisMonth = transactions.filter(t => {
     const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || Date.now());
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
@@ -234,14 +240,22 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal }
   const mood = getMoodMessage(saldo, pemasukan);
 
   // Last month comparison
-  const lastMonth = transactions.filter(t => {
+  const lastMonthTxns = transactions.filter(t => {
     const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || 0);
     const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear() && t.type === "expense";
-  }).reduce((s, t) => s + t.amount, 0);
+    return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear();
+  });
 
-  const diffPct = lastMonth > 0 ? Math.round(((pengeluaran - lastMonth) / lastMonth) * 100) : null;
+  const lastMonthExp = lastMonthTxns.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const lastMonthInc = lastMonthTxns.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
 
+  const diffPctExp = lastMonthExp > 0 ? Math.round(((pengeluaran - lastMonthExp) / lastMonthExp) * 100) : null;
+  const diffPctInc = lastMonthInc > 0 ? Math.round(((pemasukan - lastMonthInc) / lastMonthInc) * 100) : null;
+  const diffPctSaldo = (saldoAwal + lastMonthInc - lastMonthExp) > 0
+    ? Math.round(((saldo - (saldoAwal + lastMonthInc - lastMonthExp)) / (saldoAwal + lastMonthInc - lastMonthExp)) * 100)
+    : null;
+
+  // Chart data – 6 months
   const chartData = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
     const label = d.toLocaleDateString("id-ID", { month: "short" });
@@ -253,6 +267,9 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal }
       .reduce((s, t) => s + t.amount, 0);
     return { label, total };
   });
+
+  // Highest spending month
+  const highestMonth = [...chartData].sort((a, b) => b.total - a.total)[0];
 
   const catData = Object.entries(
     thisMonth.filter(t => t.type === "expense").reduce((acc, t) => {
@@ -269,126 +286,214 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal }
     return db2 - da;
   }).slice(0, 5);
 
+  // Insight messages
+  const insights = [];
+  if (diffPctExp !== null) {
+    if (diffPctExp > 0) insights.push({ icon: "📈", iconClass: "up", label: `Pengeluaran naik ${diffPctExp}%`, sub: "Dibanding bulan lalu" });
+    else insights.push({ icon: "📉", iconClass: "star", label: `Pengeluaran turun ${Math.abs(diffPctExp)}%`, sub: "Dibanding bulan lalu" });
+  }
+  if (pemasukan > pengeluaran) {
+    insights.push({ icon: "✨", iconClass: "star", label: "Kamu lebih hemat", sub: `Surplus ${fmt(pemasukan - pengeluaran)} bulan ini 😊` });
+  } else if (pengeluaran > pemasukan && pemasukan > 0) {
+    insights.push({ icon: "⚠️", iconClass: "up", label: "Pengeluaran melebihi pemasukan", sub: `Defisit ${fmt(pengeluaran - pemasukan)}` });
+  }
+  if (topCat) {
+    insights.push({ icon: CATEGORY_ICONS[topCat.name] || "📌", iconClass: "star", label: `Terbesar: ${topCat.name}`, sub: fmt(topCat.value) });
+  }
+  const shownInsights = insights.slice(0, 2);
+
   return (
     <div>
-      {/* Hero Card - Saldo Utama */}
-      <div className="hero-card" onClick={onSetSaldoAwal}>
-        <div className="hero-label">
-          <div className="hero-label-icon">💳</div>
-          Saldo Saat Ini
-        </div>
-        <div className={`hero-amount ${saldo < 0 ? "negative" : ""}`}>
-          {fmt(saldo)}
-        </div>
-        <div className="hero-footer">
-          <span>{now.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</span>
-          <span className="hero-edit-hint">Ubah saldo awal</span>
-        </div>
-      </div>
-
-      {/* Metrics Grid */}
-      <div className="metrics-grid">
-        <div className="metric-card income">
-          <div className="metric-label">Pemasukan</div>
-          <div className="metric-value green">{fmt(pemasukan)}</div>
-          <div className="metric-trend">bulan ini</div>
-        </div>
-        <div className="metric-card expense">
-          <div className="metric-label">Pengeluaran</div>
-          <div className="metric-value red">{fmt(pengeluaran)}</div>
-          <div className="metric-trend" style={{ color: diffPct !== null ? (diffPct > 0 ? "var(--red)" : "var(--green)") : "var(--text3)" }}>
-            {diffPct !== null ? (diffPct > 0 ? `▲ ${diffPct}% vs bulan lalu` : `▼ ${Math.abs(diffPct)}% vs bulan lalu`) : "bulan ini"}
+      {/* ── Top Row: Hero + Insight ── */}
+      <div className="dashboard-top-row">
+        {/* Hero Card */}
+        <div className="hero-card" onClick={onSetSaldoAwal}>
+          <div className="hero-wallet-illustration">💳</div>
+          <div className="hero-top">
+            <div className="hero-label">
+              <div className="hero-label-icon">ℹ️</div>
+              Saldo saat ini
+            </div>
+            <div className={`hero-amount ${saldo < 0 ? "negative" : ""}`}>
+              {fmtLong(saldo)}
+            </div>
+            {diffPctSaldo !== null && (
+              <div className="hero-badge">
+                {diffPctSaldo >= 0 ? "↑" : "↓"} {Math.abs(diffPctSaldo)}% dari bulan lalu
+              </div>
+            )}
+          </div>
+          <div className="hero-bottom">
+            <button
+              className="hero-ringkasan-btn"
+              onClick={e => { e.stopPropagation(); onSetSaldoAwal(); }}
+            >
+              Lihat Ringkasan →
+            </button>
+            <div className="hero-date">
+              {now.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
+            </div>
           </div>
         </div>
-        <div className="metric-card saving">
-          <div className="metric-label">Total Tabungan</div>
-          <div className="metric-value blue">{fmt(totalTabungan)}</div>
-          <div className="metric-trend">{savings.length} target aktif</div>
+
+        {/* Insight Card */}
+        <div className="insight-card">
+          <div className="insight-header">
+            <span className="insight-title">Insight untuk kamu ✦</span>
+            <span className="insight-plus">+</span>
+          </div>
+          <div className="insight-items">
+            {shownInsights.length === 0 ? (
+              <div style={{ color: "var(--text3)", fontSize: 13, fontWeight: 500, padding: "8px 0" }}>
+                Catat transaksi untuk melihat insight 👀
+              </div>
+            ) : (
+              shownInsights.map((ins, i) => (
+                <div key={i} className="insight-item">
+                  <div className={`insight-icon ${ins.iconClass}`}>{ins.icon}</div>
+                  <div className="insight-text">
+                    <div className="insight-label">{ins.label}</div>
+                    <div className="insight-sub">{ins.sub}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <button className="insight-see-all">
+            <span>Lihat semua insight</span>
+            <span>›</span>
+          </button>
         </div>
       </div>
 
-      {/* Insight banner */}
-      {(topCat || diffPct !== null) && (
-        <div className="mood-banner" style={{ background: mood.color + "14", border: `1.5px solid ${mood.color}28`, color: mood.color }}>
-          {mood.msg}
-          {topCat && <span style={{ marginLeft: 8, opacity: 0.8 }}>· Terbesar: {CATEGORY_ICONS[topCat.name]} {topCat.name} ({fmt(topCat.value)})</span>}
+      {/* ── 4 Metric Cards ── */}
+      <div className="metrics-grid">
+        <div className="metric-card">
+          <div className="metric-icon-wrap green">↓</div>
+          <div className="metric-label">Pemasukan</div>
+          <div className="metric-value green">{fmt(pemasukan)}</div>
+          <div className={`metric-trend ${diffPctInc !== null ? (diffPctInc >= 0 ? "positive" : "negative") : ""}`}>
+            {diffPctInc !== null ? `${diffPctInc >= 0 ? "↑" : "↓"} ${Math.abs(diffPctInc)}% dari bulan lalu` : "bulan ini"}
+          </div>
         </div>
-      )}
+        <div className="metric-card">
+          <div className="metric-icon-wrap red">↑</div>
+          <div className="metric-label">Pengeluaran</div>
+          <div className="metric-value red">{fmt(pengeluaran)}</div>
+          <div className={`metric-trend ${diffPctExp !== null ? (diffPctExp > 0 ? "negative" : "positive") : ""}`}>
+            {diffPctExp !== null ? `${diffPctExp > 0 ? "↑" : "↓"} ${Math.abs(diffPctExp)}% dari bulan lalu` : "bulan ini"}
+          </div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-icon-wrap blue">💳</div>
+          <div className="metric-label">Saldo Saat Ini</div>
+          <div className="metric-value blue">{fmt(saldo)}</div>
+          <div className={`metric-trend ${diffPctSaldo !== null ? (diffPctSaldo >= 0 ? "positive" : "negative") : ""}`}>
+            {diffPctSaldo !== null ? `${diffPctSaldo >= 0 ? "↑" : "↓"} ${Math.abs(diffPctSaldo)}% dari bulan lalu` : "bulan ini"}
+          </div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-icon-wrap purple">🏦</div>
+          <div className="metric-label">Total Tabungan</div>
+          <div className="metric-value purple">{fmt(totalTabungan)}</div>
+          <div className="metric-trend">
+            {savings.length > 0 ? `${savings.length} target aktif` : "belum ada target"}
+          </div>
+        </div>
+      </div>
 
-      {/* Charts */}
-      <div className="chart-row">
-        <div className="card chart-main">
-          <div className="card-title">Tren Pengeluaran</div>
-          <ResponsiveContainer width="100%" height={150}>
+      {/* ── Chart + Recent Transactions ── */}
+      <div className="chart-txn-row">
+        {/* Chart */}
+        <div className="card" style={{ marginBottom: 0 }}>
+          <div className="card-header-row">
+            <div className="card-title">Tren Pengeluaran</div>
+            <div className="card-dropdown">6 Bulan Terakhir ▾</div>
+          </div>
+          <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <defs>
-                <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                <linearGradient id="gradFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
                   <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="label" tick={{ fill: "var(--text3)", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "var(--text3)", fontSize: 10 }} axisLine={false} tickLine={false}
-                tickFormatter={v => v >= 1000000 ? `${v / 1000000}jt` : v >= 1000 ? `${v / 1000}rb` : v} />
-              <Tooltip formatter={v => fmt(v)} labelStyle={{ color: "var(--text)", fontWeight: 600 }}
-                contentStyle={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 500 }} />
-              <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2.5} fill="url(#grad)" dot={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "var(--text3)", fontSize: 11, fontWeight: 600 }}
+                axisLine={false} tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: "var(--text3)", fontSize: 10 }}
+                axisLine={false} tickLine={false}
+                tickFormatter={v => v >= 1000000 ? `${v / 1000000}jt` : v >= 1000 ? `${v / 1000}rb` : v}
+              />
+              <Tooltip
+                formatter={v => [fmt(v), "Pengeluaran"]}
+                labelStyle={{ color: "var(--text)", fontWeight: 700, fontSize: 12 }}
+                contentStyle={{
+                  background: "var(--bg2)",
+                  border: "1.5px solid var(--border)",
+                  borderRadius: 12,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+                }}
+              />
+              <Area
+                type="monotone" dataKey="total"
+                stroke="#6366f1" strokeWidth={2.5}
+                fill="url(#gradFill)" dot={false}
+                activeDot={{ r: 5, fill: "#6366f1", strokeWidth: 0 }}
+              />
             </AreaChart>
           </ResponsiveContainer>
+          {highestMonth && highestMonth.total > 0 && (
+            <div className="chart-footer-stat">
+              <div className="chart-footer-label">
+                <div className="chart-footer-icon">↑</div>
+                <div>
+                  <div className="chart-footer-text">Pengeluaran tertinggi</div>
+                  <div className="chart-footer-sub">{highestMonth.label} 2025</div>
+                </div>
+              </div>
+              <div className="chart-footer-value">{fmt(highestMonth.total)}</div>
+            </div>
+          )}
         </div>
 
-        {catData.length > 0 && (
-          <div className="card chart-side">
-            <div className="card-title">Kategori Bulan Ini</div>
-            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-              <ResponsiveContainer width={90} height={90}>
-                <PieChart>
-                  <Pie data={catData} cx="50%" cy="50%" innerRadius={24} outerRadius={44} dataKey="value" paddingAngle={3}>
-                    {catData.map((entry, i) => <Cell key={i} fill={CATEGORY_COLORS[entry.name] || "#94a3b8"} />)}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                {catData.map((c, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: CATEGORY_COLORS[c.name] || "#94a3b8", flexShrink: 0 }} />
-                    <span style={{ flex: 1, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>{c.name}</span>
-                    <span style={{ color: "var(--text)", fontSize: 10.5, fontWeight: 700, fontFamily: "var(--mono)" }}>{fmt(c.value)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {/* Recent Transactions */}
+        <div className="card" style={{ marginBottom: 0 }}>
+          <div className="card-header-row">
+            <div className="card-title">Transaksi Terbaru</div>
+            <button className="card-action-link">Lihat semua</button>
           </div>
-        )}
-      </div>
-
-      {/* Recent Transactions */}
-      <div className="card">
-        <div className="section-header" style={{ marginBottom: 12 }}>
-          <div className="card-title" style={{ marginBottom: 0 }}>Transaksi Terbaru</div>
+          {recentTxns.length === 0 ? (
+            <div className="empty-state">
+              <div className="emoji">👀</div>
+              <p>Belum ada transaksi</p>
+              <p className="empty-sub">Yuk mulai catat keuanganmu!</p>
+            </div>
+          ) : (
+            recentTxns.map(t => (
+              <div key={t.id} className="txn-item">
+                <div className="txn-icon" style={{ background: (CATEGORY_COLORS[t.category] || "#94a3b8") + "20" }}>
+                  {CATEGORY_ICONS[t.category] || "📌"}
+                </div>
+                <div className="txn-info">
+                  <div className="txn-name">{t.description}</div>
+                  <div className="txn-meta">{fmtDate(t.createdAt)} · {t.method || "—"}</div>
+                </div>
+                <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>
+                  {t.type === "income" ? "+" : "−"}{fmt(t.amount)}
+                </div>
+              </div>
+            ))
+          )}
+          <button className="tambah-txn-btn" onClick={onAddTxn}>
+            + Tambah Transaksi
+          </button>
         </div>
-        {recentTxns.length === 0 ? (
-          <div className="empty-state">
-            <div className="emoji">👀</div>
-            <p>Belum ada transaksi</p>
-            <p className="empty-sub">Yuk mulai catat keuanganmu!</p>
-          </div>
-        ) : (
-          recentTxns.map(t => (
-            <div key={t.id} className="txn-item">
-              <div className="txn-icon" style={{ background: (CATEGORY_COLORS[t.category] || "#94a3b8") + "20" }}>
-                {CATEGORY_ICONS[t.category] || "📌"}
-              </div>
-              <div className="txn-info">
-                <div className="txn-name">{t.description}</div>
-                <div className="txn-meta">{t.category} · {fmtDate(t.createdAt)} · {t.method || "—"}</div>
-              </div>
-              <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>
-                {t.type === "income" ? "+" : "-"}{fmt(t.amount)}
-              </div>
-            </div>
-          ))
-        )}
       </div>
     </div>
   );
@@ -433,7 +538,7 @@ function Transactions({ transactions, onDelete, onEdit }) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                 <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>
-                  {t.type === "income" ? "+" : "-"}{fmt(t.amount)}
+                  {t.type === "income" ? "+" : "−"}{fmt(t.amount)}
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button className="action-link edit" onClick={() => onEdit(t)}>edit</button>
@@ -806,7 +911,7 @@ export default function App() {
   const [pendingParsed, setPendingParsed] = useState(null);
   const [editingTxn, setEditingTxn] = useState(null);
   const [toast, setToast] = useState(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem("dompetku_theme") || "dark");
+  const [theme, setTheme] = useState(() => localStorage.getItem("dompetku_theme") || "light");
   const [overspentCats, setOverspentCats] = useState(new Set());
   const [streak, setStreak] = useState(0);
   const [saldoAwal, setSaldoAwal] = useState(0);
@@ -924,6 +1029,10 @@ export default function App() {
 
   const handleKeyDown = (e) => { if (e.key === "Enter") handleSubmit(); };
 
+  // Get user's display name/initial from email
+  const userInitial = user?.email ? user.email[0].toUpperCase() : "?";
+  const userName = user?.email ? user.email.split("@")[0] : "Pengguna";
+
   const NAV = [
     {
       id: "dashboard", label: "Home",
@@ -950,7 +1059,7 @@ export default function App() {
   if (user === undefined) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)" }}>
-        <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
+        <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3, borderColor: "rgba(99,102,241,0.25)", borderTopColor: "#6366f1" }} />
       </div>
     );
   }
@@ -964,7 +1073,7 @@ export default function App() {
       {editingTxn && <EditPopup txn={editingTxn} onSave={handleEdit} onCancel={() => setEditingTxn(null)} />}
       {showSaldoPopup && <SaldoAwalPopup current={saldoAwal} onSave={handleSaldoSave} onCancel={() => setShowSaldoPopup(false)} />}
 
-      {/* Sidebar (desktop) */}
+      {/* ── Sidebar (desktop) ── */}
       <aside className="sidebar">
         <div className="sidebar-brand">
           <span className="brand-icon">💰</span>
@@ -992,7 +1101,7 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Mobile header */}
+      {/* ── Mobile header ── */}
       <header className="mobile-header">
         <div className="mobile-brand">
           <span>💰</span>
@@ -1007,9 +1116,30 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main */}
+      {/* ── Main Content ── */}
       <main className="main-wrapper">
         <div className="main-content">
+
+          {/* Page header — dashboard only on desktop */}
+          {page === "dashboard" && (
+            <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div className="page-greeting">👋 Halo, {userName.charAt(0).toUpperCase() + userName.slice(1)}!</div>
+                <div className="page-sub">Kelola keuanganmu dengan lebih bijak</div>
+              </div>
+              <div style={{
+                width: 40, height: 40, borderRadius: "50%",
+                background: "var(--hero-gradient)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontWeight: 800, fontSize: 16, flexShrink: 0,
+                boxShadow: "0 4px 12px var(--hero-glow)"
+              }}>
+                {userInitial}
+              </div>
+            </div>
+          )}
+
+          {/* Quick input */}
           <div className="quick-input-bar">
             <input
               value={input}
@@ -1021,12 +1151,27 @@ export default function App() {
             <button className="send-btn" onClick={handleSubmit} disabled={loading || !input.trim()}>
               {loading
                 ? <div className="spinner" />
-                : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                : <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                    Catat
+                  </>
               }
             </button>
           </div>
 
-          {page === "dashboard" && <Dashboard transactions={transactions} budgets={budgets} savings={savings} saldoAwal={saldoAwal} onSetSaldoAwal={() => setShowSaldoPopup(true)} />}
+          {page === "dashboard" && (
+            <Dashboard
+              transactions={transactions}
+              budgets={budgets}
+              savings={savings}
+              saldoAwal={saldoAwal}
+              onSetSaldoAwal={() => setShowSaldoPopup(true)}
+              onAddTxn={() => {
+                const el = document.querySelector(".quick-input-bar input");
+                if (el) el.focus();
+              }}
+            />
+          )}
           {page === "transactions" && <Transactions transactions={transactions} onDelete={handleDelete} onEdit={setEditingTxn} />}
           {page === "budget" && <Budget transactions={transactions} budgets={budgets} setBudgets={setBudgets} onOverspend={handleOverspend} />}
           {page === "savings" && <Savings savings={savings} setSavings={setSavings} />}
@@ -1034,7 +1179,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* Mobile bottom nav */}
+      {/* ── Mobile bottom nav ── */}
       <nav className="bottom-nav">
         {NAV.map(n => (
           <button key={n.id} className={`nav-item ${page === n.id ? "active" : ""}`} onClick={() => setPage(n.id)}>
