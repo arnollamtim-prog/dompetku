@@ -55,6 +55,12 @@ const BUDGETS_DEFAULT = [
   { category: "Tagihan & Utilitas", limit: 800000 },
 ];
 
+const DEFAULT_ACCOUNTS = [
+  { id: "bca", name: "BCA", icon: "🏦", balance: 0, color: "#3b82f6" },
+  { id: "bank-lampung", name: "Bank Lampung", icon: "🏛️", balance: 0, color: "#8b5cf6" },
+  { id: "cash", name: "Cash", icon: "💵", balance: 0, color: "#22c55e" },
+];
+
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2800); return () => clearTimeout(t); }, [onDone]);
@@ -74,6 +80,58 @@ function MethodPopup({ parsed, onSelect, onCancel }) {
           <button className="method-btn" onClick={() => onSelect("cash")}><span>💵</span>Cash</button>
           <button className="method-btn" onClick={() => onSelect("qris")}><span>📱</span>QRIS</button>
           <button className="method-btn" onClick={() => onSelect("transfer")}><span>🏦</span>Transfer</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Account Picker Popup ─────────────────────────────────────────────────────
+function AccountPickerPopup({ method, parsed, accounts, onSelect, onCancel }) {
+  return (
+    <div className="overlay" onClick={onCancel}>
+      <div className="sheet" onClick={e => e.stopPropagation()}>
+        <div className="sheet-title">Dari rekening mana?</div>
+        <div className="method-subtitle">
+          {CATEGORY_ICONS[parsed.category] || "📌"} {parsed.description} · {fmt(parsed.amount)} · {method === "qris" ? "📱 QRIS" : "🏦 Transfer"}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {accounts.map(acc => (
+            <button
+              key={acc.id}
+              onClick={() => onSelect(acc.id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 14,
+                padding: "14px 16px",
+                background: "var(--bg3)",
+                border: "1.5px solid var(--border)",
+                borderRadius: "var(--radius)",
+                cursor: "pointer",
+                transition: "all 0.18s",
+                textAlign: "left",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = "var(--accent)";
+                e.currentTarget.style.background = "var(--sidebar-active-bg)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.background = "var(--bg3)";
+              }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: acc.color + "20",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 20, flexShrink: 0
+              }}>{acc.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>{acc.name}</div>
+                <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2, fontWeight: 500 }}>Saldo: {fmtLong(acc.balance)}</div>
+              </div>
+              <div style={{ fontSize: 18, color: "var(--text3)" }}>›</div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -161,6 +219,205 @@ function SaldoAwalPopup({ current, onSave, onCancel }) {
   );
 }
 
+// ─── Manage Accounts Popup ────────────────────────────────────────────────────
+function ManageAccountsPopup({ accounts, onSave, onCancel }) {
+  const [accs, setAccs] = useState(accounts.map(a => ({ ...a })));
+  const [showAdd, setShowAdd] = useState(false);
+  const [newAcc, setNewAcc] = useState({ name: "", icon: "🏦", balance: "", color: "#6366f1" });
+
+  const handleBalanceChange = (id, val) => {
+    setAccs(accs.map(a => a.id === id ? { ...a, balance: parseInt(val) || 0 } : a));
+  };
+
+  const handleAdd = () => {
+    if (!newAcc.name) return;
+    setAccs([...accs, {
+      id: Date.now().toString(),
+      name: newAcc.name,
+      icon: newAcc.icon || "🏦",
+      balance: parseInt(newAcc.balance) || 0,
+      color: newAcc.color || "#6366f1"
+    }]);
+    setNewAcc({ name: "", icon: "🏦", balance: "", color: "#6366f1" });
+    setShowAdd(false);
+  };
+
+  const handleDelete = (id) => {
+    setAccs(accs.filter(a => a.id !== id));
+  };
+
+  return (
+    <div className="overlay" onClick={onCancel}>
+      <div className="sheet" onClick={e => e.stopPropagation()}>
+        <div className="sheet-title">Kelola Rekening</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+          {accs.map(acc => (
+            <div key={acc.id} style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "12px 14px",
+              background: "var(--bg3)",
+              border: "1.5px solid var(--border)",
+              borderRadius: "var(--radius)",
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9,
+                background: acc.color + "20",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 18, flexShrink: 0
+              }}>{acc.icon}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>{acc.name}</div>
+                <input
+                  type="number"
+                  className="form-input"
+                  style={{ padding: "7px 10px", fontSize: 13 }}
+                  placeholder="Saldo awal"
+                  value={acc.balance || ""}
+                  onChange={e => handleBalanceChange(acc.id, e.target.value)}
+                />
+              </div>
+              {!["bca", "bank-lampung", "cash"].includes(acc.id) && (
+                <button
+                  onClick={() => handleDelete(acc.id)}
+                  style={{ background: "none", border: "none", color: "var(--text3)", fontSize: 18, cursor: "pointer", padding: 4 }}
+                >×</button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {showAdd ? (
+          <div style={{
+            padding: "14px", background: "var(--bg3)",
+            border: "1.5px solid var(--border)", borderRadius: "var(--radius)", marginBottom: 12
+          }}>
+            <div className="form-group">
+              <label className="form-label">Icon</label>
+              <input className="form-input" value={newAcc.icon} maxLength={2}
+                onChange={e => setNewAcc({ ...newAcc, icon: e.target.value })} placeholder="🏦" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nama Rekening</label>
+              <input className="form-input" value={newAcc.name}
+                onChange={e => setNewAcc({ ...newAcc, name: e.target.value })} placeholder="cth: Mandiri, GoPay" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Saldo Awal (Rp)</label>
+              <input className="form-input" type="number" value={newAcc.balance}
+                onChange={e => setNewAcc({ ...newAcc, balance: e.target.value })} placeholder="0" />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn-primary" style={{ marginTop: 0, flex: 1 }} onClick={handleAdd}>Tambah</button>
+              <button className="btn-ghost" style={{ marginTop: 0, flex: 1 }} onClick={() => setShowAdd(false)}>Batal</button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAdd(true)}
+            style={{
+              width: "100%", padding: "11px", background: "none",
+              border: "1.5px dashed var(--border)", borderRadius: "var(--radius)",
+              color: "var(--accent)", fontSize: 13.5, fontWeight: 700,
+              cursor: "pointer", marginBottom: 12, transition: "all 0.18s"
+            }}
+          >+ Tambah Rekening</button>
+        )}
+
+        <button className="btn-primary" onClick={() => onSave(accs)}>Simpan</button>
+        <button className="btn-ghost" onClick={onCancel}>Batal</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Assets Popup ─────────────────────────────────────────────────────────────
+function AssetsPopup({ assets, onSave, onCancel }) {
+  const [items, setItems] = useState(assets.map(a => ({ ...a })));
+  const [showAdd, setShowAdd] = useState(false);
+  const [newItem, setNewItem] = useState({ name: "", icon: "💍", value: "" });
+
+  const handleAdd = () => {
+    if (!newItem.name || !newItem.value) return;
+    setItems([...items, {
+      id: Date.now().toString(),
+      name: newItem.name,
+      icon: newItem.icon || "💍",
+      value: parseInt(newItem.value) || 0
+    }]);
+    setNewItem({ name: "", icon: "💍", value: "" });
+    setShowAdd(false);
+  };
+
+  return (
+    <div className="overlay" onClick={onCancel}>
+      <div className="sheet" onClick={e => e.stopPropagation()}>
+        <div className="sheet-title">Aset Saya</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+          {items.length === 0 && (
+            <div style={{ textAlign: "center", color: "var(--text3)", fontSize: 13, padding: "20px 0" }}>
+              Belum ada aset tercatat
+            </div>
+          )}
+          {items.map(item => (
+            <div key={item.id} style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "12px 14px", background: "var(--bg3)",
+              border: "1.5px solid var(--border)", borderRadius: "var(--radius)"
+            }}>
+              <span style={{ fontSize: 22 }}>{item.icon}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>{item.name}</div>
+                <div style={{ fontSize: 12, color: "var(--amber)", fontWeight: 700, marginTop: 2 }}>{fmtLong(item.value)}</div>
+              </div>
+              <button
+                onClick={() => setItems(items.filter(i => i.id !== item.id))}
+                style={{ background: "none", border: "none", color: "var(--text3)", fontSize: 18, cursor: "pointer" }}
+              >×</button>
+            </div>
+          ))}
+        </div>
+
+        {showAdd ? (
+          <div style={{ padding: 14, background: "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius)", marginBottom: 12 }}>
+            <div className="form-group">
+              <label className="form-label">Icon</label>
+              <input className="form-input" value={newItem.icon} maxLength={2}
+                onChange={e => setNewItem({ ...newItem, icon: e.target.value })} placeholder="💍" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nama Aset</label>
+              <input className="form-input" value={newItem.name}
+                onChange={e => setNewItem({ ...newItem, name: e.target.value })} placeholder="cth: Cincin Emas, Gelang" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Estimasi Nilai (Rp)</label>
+              <input className="form-input" type="number" value={newItem.value}
+                onChange={e => setNewItem({ ...newItem, value: e.target.value })} placeholder="5000000" />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn-primary" style={{ marginTop: 0, flex: 1 }} onClick={handleAdd}>Tambah</button>
+              <button className="btn-ghost" style={{ marginTop: 0, flex: 1 }} onClick={() => setShowAdd(false)}>Batal</button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAdd(true)}
+            style={{
+              width: "100%", padding: "11px", background: "none",
+              border: "1.5px dashed var(--border)", borderRadius: "var(--radius)",
+              color: "var(--accent)", fontSize: 13.5, fontWeight: 700,
+              cursor: "pointer", marginBottom: 12
+            }}
+          >+ Tambah Aset</button>
+        )}
+
+        <button className="btn-primary" onClick={() => onSave(items)}>Simpan</button>
+        <button className="btn-ghost" onClick={onCancel}>Batal</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Login Page ───────────────────────────────────────────────────────────────
 function LoginPage() {
   const [mode, setMode] = useState("login");
@@ -195,12 +452,10 @@ function LoginPage() {
         <div className="login-logo">💰</div>
         <h1 className="login-title">Dompetku</h1>
         <p className="login-sub">Kelola keuanganmu dengan lebih bijak</p>
-
         <div className="login-tabs">
           <button className={`login-tab ${mode === "login" ? "active" : ""}`} onClick={() => { setMode("login"); setError(""); }}>Masuk</button>
           <button className={`login-tab ${mode === "register" ? "active" : ""}`} onClick={() => { setMode("register"); setError(""); }}>Daftar</button>
         </div>
-
         <div className="form-group">
           <label className="form-label">Email</label>
           <input className="form-input" type="email" placeholder="nama@email.com"
@@ -213,9 +468,7 @@ function LoginPage() {
             value={password} onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handle()} />
         </div>
-
         {error && <div className="login-error">⚠️ {error}</div>}
-
         <button className="btn-primary" onClick={handle} disabled={loading}>
           {loading ? "Memproses..." : mode === "login" ? "Masuk" : "Buat Akun"}
         </button>
@@ -225,7 +478,8 @@ function LoginPage() {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
-function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, onAddTxn }) {
+function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, onAddTxn,
+  piutangs, includePiutang, onTogglePiutang, accounts, assets, onManageAccounts, onManageAssets }) {
   const now = new Date();
 
   const thisMonth = transactions.filter(t => {
@@ -235,11 +489,22 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
 
   const pemasukan = thisMonth.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const pengeluaran = thisMonth.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-  const saldo = saldoAwal + pemasukan - pengeluaran;
+
+  // Piutang aktif (belum dibayar)
+  const totalPiutangAktif = piutangs.filter(p => !p.lunas).reduce((s, p) => s + p.sisa, 0);
+
+  const saldoMurni = saldoAwal + pemasukan - pengeluaran;
+  const saldo = includePiutang ? saldoMurni + totalPiutangAktif : saldoMurni;
+
+  // Total aset rekening
+  const totalRekening = accounts.reduce((s, a) => s + (a.balance || 0), 0);
+  // Total aset benda
+  const totalAsetBenda = assets.reduce((s, a) => s + (a.value || 0), 0);
+  const totalNetWorth = totalRekening + totalAsetBenda + (includePiutang ? totalPiutangAktif : 0);
+
   const totalTabungan = savings.reduce((s, sv) => s + (sv.current || 0), 0);
   const mood = getMoodMessage(saldo, pemasukan);
 
-  // Last month comparison
   const lastMonthTxns = transactions.filter(t => {
     const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || 0);
     const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -248,14 +513,12 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
 
   const lastMonthExp = lastMonthTxns.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const lastMonthInc = lastMonthTxns.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
-
   const diffPctExp = lastMonthExp > 0 ? Math.round(((pengeluaran - lastMonthExp) / lastMonthExp) * 100) : null;
   const diffPctInc = lastMonthInc > 0 ? Math.round(((pemasukan - lastMonthInc) / lastMonthInc) * 100) : null;
   const diffPctSaldo = (saldoAwal + lastMonthInc - lastMonthExp) > 0
     ? Math.round(((saldo - (saldoAwal + lastMonthInc - lastMonthExp)) / (saldoAwal + lastMonthInc - lastMonthExp)) * 100)
     : null;
 
-  // Chart data – 6 months
   const chartData = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
     const label = d.toLocaleDateString("id-ID", { month: "short" });
@@ -268,7 +531,6 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
     return { label, total };
   });
 
-  // Highest spending month
   const highestMonth = [...chartData].sort((a, b) => b.total - a.total)[0];
 
   const catData = Object.entries(
@@ -286,7 +548,6 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
     return db2 - da;
   }).slice(0, 5);
 
-  // Insight messages
   const insights = [];
   if (diffPctExp !== null) {
     if (diffPctExp > 0) insights.push({ icon: "📈", iconClass: "up", label: `Pengeluaran naik ${diffPctExp}%`, sub: "Dibanding bulan lalu" });
@@ -299,6 +560,9 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
   }
   if (topCat) {
     insights.push({ icon: CATEGORY_ICONS[topCat.name] || "📌", iconClass: "star", label: `Terbesar: ${topCat.name}`, sub: fmt(topCat.value) });
+  }
+  if (includePiutang && totalPiutangAktif > 0) {
+    insights.push({ icon: "🤝", iconClass: "star", label: `Piutang aktif: ${fmt(totalPiutangAktif)}`, sub: "Include dalam saldo" });
   }
   const shownInsights = insights.slice(0, 2);
 
@@ -317,18 +581,57 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
             <div className={`hero-amount ${saldo < 0 ? "negative" : ""}`}>
               {fmtLong(saldo)}
             </div>
+            {includePiutang && totalPiutangAktif > 0 && (
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginBottom: 6, fontWeight: 500 }}>
+                termasuk piutang {fmt(totalPiutangAktif)}
+              </div>
+            )}
             {diffPctSaldo !== null && (
               <div className="hero-badge">
                 {diffPctSaldo >= 0 ? "↑" : "↓"} {Math.abs(diffPctSaldo)}% dari bulan lalu
               </div>
             )}
           </div>
+
+          {/* Toggle Include Piutang */}
+          <div style={{ position: "relative", zIndex: 1, marginTop: 12 }}>
+            <div
+              onClick={e => { e.stopPropagation(); onTogglePiutang(); }}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                borderRadius: 99, padding: "6px 12px",
+                cursor: "pointer", transition: "background 0.18s"
+              }}
+            >
+              <div style={{
+                width: 30, height: 17,
+                background: includePiutang ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.18)",
+                borderRadius: 99, position: "relative", transition: "background 0.2s",
+                flexShrink: 0,
+              }}>
+                <div style={{
+                  position: "absolute", top: 2,
+                  left: includePiutang ? 15 : 2,
+                  width: 13, height: 13,
+                  background: "#fff", borderRadius: "50%",
+                  transition: "left 0.2s",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.25)"
+                }} />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>
+                {includePiutang ? "Saldo + Piutang" : "Saldo Murni"}
+              </span>
+            </div>
+          </div>
+
           <div className="hero-bottom">
             <button
               className="hero-ringkasan-btn"
               onClick={e => { e.stopPropagation(); onSetSaldoAwal(); }}
             >
-              Lihat Ringkasan →
+              Set Saldo Awal →
             </button>
             <div className="hero-date">
               {now.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
@@ -363,6 +666,67 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
             <span>Lihat semua insight</span>
             <span>›</span>
           </button>
+        </div>
+      </div>
+
+      {/* ── Rekening & Aset Row ── */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px" }}>Rekening & Aset</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={onManageAccounts}
+              style={{
+                background: "none", border: "1.5px solid var(--border)",
+                borderRadius: "var(--radius-sm)", color: "var(--accent)",
+                fontSize: 12, fontWeight: 700, padding: "5px 12px", cursor: "pointer"
+              }}
+            >⚙️ Rekening</button>
+            <button
+              onClick={onManageAssets}
+              style={{
+                background: "none", border: "1.5px solid var(--border)",
+                borderRadius: "var(--radius-sm)", color: "var(--amber)",
+                fontSize: 12, fontWeight: 700, padding: "5px 12px", cursor: "pointer"
+              }}
+            >💍 Aset</button>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+          {accounts.map(acc => (
+            <div key={acc.id} style={{
+              background: "var(--bg2)", border: "1.5px solid var(--border)",
+              borderRadius: "var(--radius-lg)", padding: "14px 16px",
+              minWidth: 130, flexShrink: 0,
+              boxShadow: "var(--card-shadow)"
+            }}>
+              <div style={{ fontSize: 20, marginBottom: 8 }}>{acc.icon}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text3)", fontWeight: 600, marginBottom: 4 }}>{acc.name}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.4px" }}>{fmt(acc.balance)}</div>
+            </div>
+          ))}
+          {assets.map(asset => (
+            <div key={asset.id} style={{
+              background: "var(--bg2)", border: "1.5px solid var(--border)",
+              borderRadius: "var(--radius-lg)", padding: "14px 16px",
+              minWidth: 130, flexShrink: 0,
+              boxShadow: "var(--card-shadow)"
+            }}>
+              <div style={{ fontSize: 20, marginBottom: 8 }}>{asset.icon}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text3)", fontWeight: 600, marginBottom: 4 }}>{asset.name}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--amber)", letterSpacing: "-0.4px" }}>{fmt(asset.value)}</div>
+            </div>
+          ))}
+          {/* Net Worth Card */}
+          <div style={{
+            background: "var(--hero-gradient)", borderRadius: "var(--radius-lg)",
+            padding: "14px 16px", minWidth: 140, flexShrink: 0,
+            boxShadow: "0 4px 14px var(--hero-glow)"
+          }}>
+            <div style={{ fontSize: 20, marginBottom: 8 }}>📊</div>
+            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.7)", fontWeight: 600, marginBottom: 4 }}>Total Kekayaan</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px" }}>{fmt(totalNetWorth)}</div>
+          </div>
         </div>
       </div>
 
@@ -404,7 +768,6 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
 
       {/* ── Chart + Recent Transactions ── */}
       <div className="chart-txn-row">
-        {/* Chart */}
         <div className="card" style={{ marginBottom: 0 }}>
           <div className="card-header-row">
             <div className="card-title">Tren Pengeluaran</div>
@@ -414,38 +777,20 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
             <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
                   <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis
-                dataKey="label"
-                tick={{ fill: "var(--text3)", fontSize: 11, fontWeight: 600 }}
-                axisLine={false} tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: "var(--text3)", fontSize: 10 }}
-                axisLine={false} tickLine={false}
-                tickFormatter={v => v >= 1000000 ? `${v / 1000000}jt` : v >= 1000 ? `${v / 1000}rb` : v}
-              />
+              <XAxis dataKey="label" tick={{ fill: "var(--text3)", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "var(--text3)", fontSize: 10 }} axisLine={false} tickLine={false}
+                tickFormatter={v => v >= 1000000 ? `${v / 1000000}jt` : v >= 1000 ? `${v / 1000}rb` : v} />
               <Tooltip
                 formatter={v => [fmt(v), "Pengeluaran"]}
                 labelStyle={{ color: "var(--text)", fontWeight: 700, fontSize: 12 }}
-                contentStyle={{
-                  background: "var(--bg2)",
-                  border: "1.5px solid var(--border)",
-                  borderRadius: 12,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-                }}
+                contentStyle={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 600 }}
               />
-              <Area
-                type="monotone" dataKey="total"
-                stroke="#6366f1" strokeWidth={2.5}
-                fill="url(#gradFill)" dot={false}
-                activeDot={{ r: 5, fill: "#6366f1", strokeWidth: 0 }}
-              />
+              <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2.5}
+                fill="url(#gradFill)" dot={false} activeDot={{ r: 5, fill: "#6366f1", strokeWidth: 0 }} />
             </AreaChart>
           </ResponsiveContainer>
           {highestMonth && highestMonth.total > 0 && (
@@ -454,7 +799,7 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
                 <div className="chart-footer-icon">↑</div>
                 <div>
                   <div className="chart-footer-text">Pengeluaran tertinggi</div>
-                  <div className="chart-footer-sub">{highestMonth.label} 2025</div>
+                  <div className="chart-footer-sub">{highestMonth.label}</div>
                 </div>
               </div>
               <div className="chart-footer-value">{fmt(highestMonth.total)}</div>
@@ -462,7 +807,6 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
           )}
         </div>
 
-        {/* Recent Transactions */}
         <div className="card" style={{ marginBottom: 0 }}>
           <div className="card-header-row">
             <div className="card-title">Transaksi Terbaru</div>
@@ -490,9 +834,7 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
               </div>
             ))
           )}
-          <button className="tambah-txn-btn" onClick={onAddTxn}>
-            + Tambah Transaksi
-          </button>
+          <button className="tambah-txn-btn" onClick={onAddTxn}>+ Tambah Transaksi</button>
         </div>
       </div>
     </div>
@@ -534,7 +876,7 @@ function Transactions({ transactions, onDelete, onEdit }) {
               </div>
               <div className="txn-info">
                 <div className="txn-name">{t.description}</div>
-                <div className="txn-meta">{t.category} · {fmtDate(t.createdAt)} · {t.method || "—"}</div>
+                <div className="txn-meta">{t.category} · {fmtDate(t.createdAt)} · {t.method || "—"}{t.accountName ? ` · ${t.accountName}` : ""}</div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                 <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>
@@ -613,7 +955,6 @@ function Budget({ transactions, budgets, setBudgets, onOverspend }) {
           );
         })}
       </div>
-
       {showAdd && (
         <div className="overlay" onClick={() => setShowAdd(false)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
@@ -708,47 +1049,27 @@ function Savings({ savings, setSavings }) {
           );
         })}
       </div>
-
       {showAdd && (
         <div className="overlay" onClick={() => setShowAdd(false)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-title">Target Baru</div>
-            <div className="form-group">
-              <label className="form-label">Icon</label>
-              <input className="form-input" value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} placeholder="🎯" maxLength={2} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Nama</label>
-              <input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="cth: Beli HP baru" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Target (Rp)</label>
-              <input className="form-input" type="number" value={form.target} onChange={e => setForm({ ...form, target: e.target.value })} placeholder="5000000" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Sudah punya (Rp)</label>
-              <input className="form-input" type="number" value={form.current} onChange={e => setForm({ ...form, current: e.target.value })} placeholder="0" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Deadline</label>
-              <input className="form-input" type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
-            </div>
+            <div className="form-group"><label className="form-label">Icon</label><input className="form-input" value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} placeholder="🎯" maxLength={2} /></div>
+            <div className="form-group"><label className="form-label">Nama</label><input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="cth: Beli HP baru" /></div>
+            <div className="form-group"><label className="form-label">Target (Rp)</label><input className="form-input" type="number" value={form.target} onChange={e => setForm({ ...form, target: e.target.value })} placeholder="5000000" /></div>
+            <div className="form-group"><label className="form-label">Sudah punya (Rp)</label><input className="form-input" type="number" value={form.current} onChange={e => setForm({ ...form, current: e.target.value })} placeholder="0" /></div>
+            <div className="form-group"><label className="form-label">Deadline</label><input className="form-input" type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} /></div>
             <button className="btn-primary" onClick={handleAdd}>Simpan</button>
             <button className="btn-ghost" onClick={() => setShowAdd(false)}>Batal</button>
           </div>
         </div>
       )}
-
       {showDeposit && (
         <div className="overlay" onClick={() => setShowDeposit(null)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-title">{showDeposit.icon} Setor ke {showDeposit.name}</div>
-            <div className="form-group">
-              <label className="form-label">Jumlah (Rp)</label>
+            <div className="form-group"><label className="form-label">Jumlah (Rp)</label>
               <input className="form-input" type="number" value={depositAmt} onChange={e => setDepositAmt(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleDeposit(showDeposit)}
-                placeholder="100000" autoFocus />
-            </div>
+                onKeyDown={e => e.key === "Enter" && handleDeposit(showDeposit)} placeholder="100000" autoFocus /></div>
             <button className="btn-primary" onClick={() => handleDeposit(showDeposit)}>Simpan</button>
             <button className="btn-ghost" onClick={() => setShowDeposit(null)}>Batal</button>
           </div>
@@ -759,7 +1080,7 @@ function Savings({ savings, setSavings }) {
 }
 
 // ─── Piutang Page ─────────────────────────────────────────────────────────────
-function Piutang({ piutangs, setPiutangs }) {
+function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showBayar, setShowBayar] = useState(null);
   const [form, setForm] = useState({ name: "", amount: "", note: "", date: "" });
@@ -767,13 +1088,16 @@ function Piutang({ piutangs, setPiutangs }) {
 
   const handleAdd = () => {
     if (!form.name || !form.amount) return;
-    setPiutangs([...piutangs, {
+    const newPiutang = {
       id: Date.now().toString(),
       name: form.name, total: parseInt(form.amount),
       sisa: parseInt(form.amount), note: form.note,
       date: form.date || new Date().toISOString().split("T")[0],
       history: []
-    }]);
+    };
+    const updated = [...piutangs, newPiutang];
+    setPiutangs(updated);
+    onPiutangChange(updated);
     setShowAdd(false);
     setForm({ name: "", amount: "", note: "", date: "" });
   };
@@ -782,16 +1106,19 @@ function Piutang({ piutangs, setPiutangs }) {
     const amt = parseInt(bayarAmt);
     if (!amt) return;
     const newSisa = Math.max(0, p.sisa - amt);
-    setPiutangs(piutangs.map(x => x.id === p.id ? {
+    const updated = piutangs.map(x => x.id === p.id ? {
       ...x, sisa: newSisa,
       history: [...(x.history || []), { amount: amt, date: new Date().toLocaleDateString("id-ID") }],
       lunas: newSisa === 0
-    } : x));
+    } : x);
+    setPiutangs(updated);
+    onPiutangChange(updated);
     setShowBayar(null); setBayarAmt("");
   };
 
   const active = piutangs.filter(p => !p.lunas);
   const lunas = piutangs.filter(p => p.lunas);
+  const totalAktif = active.reduce((s, p) => s + p.sisa, 0);
 
   return (
     <div>
@@ -799,6 +1126,20 @@ function Piutang({ piutangs, setPiutangs }) {
         <div className="section-title">Piutang</div>
         <button className="section-action" onClick={() => setShowAdd(true)}>+ Tambah</button>
       </div>
+
+      {totalAktif > 0 && (
+        <div style={{
+          background: "rgba(251,191,36,0.1)", border: "1.5px solid rgba(251,191,36,0.3)",
+          borderRadius: "var(--radius)", padding: "12px 16px", marginBottom: 14,
+          display: "flex", alignItems: "center", justifyContent: "space-between"
+        }}>
+          <div>
+            <div style={{ fontSize: 11.5, color: "var(--amber)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Total Piutang Aktif</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--amber)", letterSpacing: "-0.5px", marginTop: 2 }}>{fmtLong(totalAktif)}</div>
+          </div>
+          <div style={{ fontSize: 24 }}>🤝</div>
+        </div>
+      )}
 
       {active.length === 0 && lunas.length === 0 && (
         <div className="card">
@@ -856,22 +1197,13 @@ function Piutang({ piutangs, setPiutangs }) {
         <div className="overlay" onClick={() => setShowAdd(false)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-title">Catat Piutang Baru</div>
-            <div className="form-group">
-              <label className="form-label">Nama Peminjam</label>
-              <input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="cth: Budi" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Jumlah (Rp)</label>
-              <input className="form-input" type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="200000" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Catatan</label>
-              <input className="form-input" value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="opsional" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Tanggal</label>
-              <input className="form-input" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
-            </div>
+            <p style={{ fontSize: 12.5, color: "var(--text3)", marginBottom: 16, lineHeight: 1.5 }}>
+              💡 Piutang akan otomatis include dalam total saldo kamu
+            </p>
+            <div className="form-group"><label className="form-label">Nama Peminjam</label><input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="cth: Budi" /></div>
+            <div className="form-group"><label className="form-label">Jumlah (Rp)</label><input className="form-input" type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="200000" /></div>
+            <div className="form-group"><label className="form-label">Catatan</label><input className="form-input" value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="opsional" /></div>
+            <div className="form-group"><label className="form-label">Tanggal</label><input className="form-input" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
             <button className="btn-primary" onClick={handleAdd}>Simpan</button>
             <button className="btn-ghost" onClick={() => setShowAdd(false)}>Batal</button>
           </div>
@@ -883,12 +1215,9 @@ function Piutang({ piutangs, setPiutangs }) {
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-title">Catat Bayar dari {showBayar.name}</div>
             <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 14, fontWeight: 500 }}>Sisa hutang: {fmt(showBayar.sisa)}</div>
-            <div className="form-group">
-              <label className="form-label">Jumlah Bayar (Rp)</label>
+            <div className="form-group"><label className="form-label">Jumlah Bayar (Rp)</label>
               <input className="form-input" type="number" value={bayarAmt} onChange={e => setBayarAmt(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleBayar(showBayar)}
-                placeholder="100000" autoFocus />
-            </div>
+                onKeyDown={e => e.key === "Enter" && handleBayar(showBayar)} placeholder="100000" autoFocus /></div>
             <button className="btn-primary" onClick={() => handleBayar(showBayar)}>Simpan</button>
             <button className="btn-ghost" onClick={() => setShowBayar(null)}>Batal</button>
           </div>
@@ -906,9 +1235,12 @@ export default function App() {
   const [budgets, setBudgets] = useState(BUDGETS_DEFAULT);
   const [savings, setSavings] = useState([]);
   const [piutangs, setPiutangs] = useState([]);
+  const [accounts, setAccounts] = useState(DEFAULT_ACCOUNTS);
+  const [assets, setAssets] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [pendingParsed, setPendingParsed] = useState(null);
+  const [pendingMethod, setPendingMethod] = useState(null); // untuk account picker
   const [editingTxn, setEditingTxn] = useState(null);
   const [toast, setToast] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem("dompetku_theme") || "light");
@@ -916,6 +1248,9 @@ export default function App() {
   const [streak, setStreak] = useState(0);
   const [saldoAwal, setSaldoAwal] = useState(0);
   const [showSaldoPopup, setShowSaldoPopup] = useState(false);
+  const [showManageAccounts, setShowManageAccounts] = useState(false);
+  const [showManageAssets, setShowManageAssets] = useState(false);
+  const [includePiutang, setIncludePiutang] = useState(true);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -946,11 +1281,18 @@ export default function App() {
     const b = localStorage.getItem(`${key}_budgets`); if (b) setBudgets(JSON.parse(b));
     const st = localStorage.getItem(`${key}_streak`); if (st) setStreak(parseInt(st));
     const sa = localStorage.getItem(`${key}_saldoAwal`); if (sa) setSaldoAwal(parseInt(sa));
+    const ac = localStorage.getItem(`${key}_accounts`); if (ac) setAccounts(JSON.parse(ac));
+    const as = localStorage.getItem(`${key}_assets`); if (as) setAssets(JSON.parse(as));
+    const ip = localStorage.getItem(`${key}_includePiutang`);
+    if (ip !== null) setIncludePiutang(ip === "true");
   }, [user]);
 
   useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_savings`, JSON.stringify(savings)); }, [savings, user]);
   useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_piutangs`, JSON.stringify(piutangs)); }, [piutangs, user]);
   useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_budgets`, JSON.stringify(budgets)); }, [budgets, user]);
+  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_accounts`, JSON.stringify(accounts)); }, [accounts, user]);
+  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_assets`, JSON.stringify(assets)); }, [assets, user]);
+  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_includePiutang`, includePiutang); }, [includePiutang, user]);
 
   const showToast = (msg) => setToast(msg);
 
@@ -968,16 +1310,35 @@ export default function App() {
     setLoading(true);
     try {
       const parsed = await parseTransactionInput(input);
-      if (!parsed.method) {
-        setPendingParsed({ ...parsed, rawInput: input });
-      } else {
-        await saveTransaction(parsed);
-      }
+      setPendingParsed({ ...parsed, rawInput: input });
+      // Tampilkan method popup dulu
     } catch (e) {
       showToast("Gagal parse transaksi 😢");
     }
     setLoading(false);
     setInput("");
+  };
+
+  // Step 1: pilih method
+  const handleMethodSelect = (method) => {
+    if (!pendingParsed) return;
+    if (method === "cash") {
+      // Cash tidak perlu pilih rekening
+      saveTransaction({ ...pendingParsed, method, accountId: "cash", accountName: "Cash" });
+      setPendingParsed(null);
+    } else {
+      // QRIS/Transfer → tampilkan account picker
+      setPendingMethod(method);
+    }
+  };
+
+  // Step 2: pilih rekening (khusus QRIS/Transfer)
+  const handleAccountSelect = (accountId) => {
+    if (!pendingParsed || !pendingMethod) return;
+    const acc = accounts.find(a => a.id === accountId);
+    saveTransaction({ ...pendingParsed, method: pendingMethod, accountId, accountName: acc?.name || "" });
+    setPendingParsed(null);
+    setPendingMethod(null);
   };
 
   const saveTransaction = async (parsed) => {
@@ -987,18 +1348,14 @@ export default function App() {
       category: parsed.category,
       type: parsed.type,
       method: parsed.method,
+      accountId: parsed.accountId || null,
+      accountName: parsed.accountName || null,
       createdAt: new Date()
     });
     const newStreak = streak + 1;
     setStreak(newStreak);
     localStorage.setItem(`dompetku_${user.uid}_streak`, newStreak);
     showToast(`✅ ${parsed.description} · ${fmt(parsed.amount)}`);
-  };
-
-  const handleMethodSelect = async (method) => {
-    if (!pendingParsed) return;
-    await saveTransaction({ ...pendingParsed, method });
-    setPendingParsed(null);
   };
 
   const handleDelete = async (id) => {
@@ -1027,33 +1384,34 @@ export default function App() {
     showToast(`💳 Saldo awal: ${fmt(val)}`);
   };
 
+  const handleSaveAccounts = (updated) => {
+    setAccounts(updated);
+    setShowManageAccounts(false);
+    showToast("💳 Rekening diperbarui");
+  };
+
+  const handleSaveAssets = (updated) => {
+    setAssets(updated);
+    setShowManageAssets(false);
+    showToast("💍 Aset diperbarui");
+  };
+
+  // Piutang change callback — untuk update saldo realtime
+  const handlePiutangChange = (updated) => {
+    setPiutangs(updated);
+  };
+
   const handleKeyDown = (e) => { if (e.key === "Enter") handleSubmit(); };
 
-  // Get user's display name/initial from email
   const userInitial = user?.email ? user.email[0].toUpperCase() : "?";
   const userName = user?.email ? user.email.split("@")[0] : "Pengguna";
 
   const NAV = [
-    {
-      id: "dashboard", label: "Home",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-    },
-    {
-      id: "transactions", label: "Transaksi",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
-    },
-    {
-      id: "budget", label: "Budget",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
-    },
-    {
-      id: "savings", label: "Tabungan",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z" /><path d="M12 6v6l4 2" /></svg>
-    },
-    {
-      id: "piutang", label: "Piutang",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg>
-    },
+    { id: "dashboard", label: "Home", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
+    { id: "transactions", label: "Transaksi", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg> },
+    { id: "budget", label: "Budget", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg> },
+    { id: "savings", label: "Tabungan", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z" /><path d="M12 6v6l4 2" /></svg> },
+    { id: "piutang", label: "Piutang", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg> },
   ];
 
   if (user === undefined) {
@@ -1069,11 +1427,33 @@ export default function App() {
   return (
     <div className="app">
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
-      {pendingParsed && <MethodPopup parsed={pendingParsed} onSelect={handleMethodSelect} onCancel={() => setPendingParsed(null)} />}
+
+      {/* Step 1: Method picker */}
+      {pendingParsed && !pendingMethod && (
+        <MethodPopup
+          parsed={pendingParsed}
+          onSelect={handleMethodSelect}
+          onCancel={() => setPendingParsed(null)}
+        />
+      )}
+
+      {/* Step 2: Account picker (QRIS/Transfer) */}
+      {pendingParsed && pendingMethod && (
+        <AccountPickerPopup
+          method={pendingMethod}
+          parsed={pendingParsed}
+          accounts={accounts}
+          onSelect={handleAccountSelect}
+          onCancel={() => { setPendingParsed(null); setPendingMethod(null); }}
+        />
+      )}
+
       {editingTxn && <EditPopup txn={editingTxn} onSave={handleEdit} onCancel={() => setEditingTxn(null)} />}
       {showSaldoPopup && <SaldoAwalPopup current={saldoAwal} onSave={handleSaldoSave} onCancel={() => setShowSaldoPopup(false)} />}
+      {showManageAccounts && <ManageAccountsPopup accounts={accounts} onSave={handleSaveAccounts} onCancel={() => setShowManageAccounts(false)} />}
+      {showManageAssets && <AssetsPopup assets={assets} onSave={handleSaveAssets} onCancel={() => setShowManageAssets(false)} />}
 
-      {/* ── Sidebar (desktop) ── */}
+      {/* ── Sidebar ── */}
       <aside className="sidebar">
         <div className="sidebar-brand">
           <span className="brand-icon">💰</span>
@@ -1101,7 +1481,7 @@ export default function App() {
         </div>
       </aside>
 
-      {/* ── Mobile header ── */}
+      {/* ── Mobile Header ── */}
       <header className="mobile-header">
         <div className="mobile-brand">
           <span>💰</span>
@@ -1119,8 +1499,6 @@ export default function App() {
       {/* ── Main Content ── */}
       <main className="main-wrapper">
         <div className="main-content">
-
-          {/* Page header — dashboard only on desktop */}
           {page === "dashboard" && (
             <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
@@ -1133,13 +1511,10 @@ export default function App() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 color: "#fff", fontWeight: 800, fontSize: 16, flexShrink: 0,
                 boxShadow: "0 4px 12px var(--hero-glow)"
-              }}>
-                {userInitial}
-              </div>
+              }}>{userInitial}</div>
             </div>
           )}
 
-          {/* Quick input */}
           <div className="quick-input-bar">
             <input
               value={input}
@@ -1151,10 +1526,7 @@ export default function App() {
             <button className="send-btn" onClick={handleSubmit} disabled={loading || !input.trim()}>
               {loading
                 ? <div className="spinner" />
-                : <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                    Catat
-                  </>
+                : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Catat</>
               }
             </button>
           </div>
@@ -1166,20 +1538,24 @@ export default function App() {
               savings={savings}
               saldoAwal={saldoAwal}
               onSetSaldoAwal={() => setShowSaldoPopup(true)}
-              onAddTxn={() => {
-                const el = document.querySelector(".quick-input-bar input");
-                if (el) el.focus();
-              }}
+              onAddTxn={() => { const el = document.querySelector(".quick-input-bar input"); if (el) el.focus(); }}
+              piutangs={piutangs}
+              includePiutang={includePiutang}
+              onTogglePiutang={() => setIncludePiutang(p => !p)}
+              accounts={accounts}
+              assets={assets}
+              onManageAccounts={() => setShowManageAccounts(true)}
+              onManageAssets={() => setShowManageAssets(true)}
             />
           )}
           {page === "transactions" && <Transactions transactions={transactions} onDelete={handleDelete} onEdit={setEditingTxn} />}
           {page === "budget" && <Budget transactions={transactions} budgets={budgets} setBudgets={setBudgets} onOverspend={handleOverspend} />}
           {page === "savings" && <Savings savings={savings} setSavings={setSavings} />}
-          {page === "piutang" && <Piutang piutangs={piutangs} setPiutangs={setPiutangs} />}
+          {page === "piutang" && <Piutang piutangs={piutangs} setPiutangs={setPiutangs} onPiutangChange={handlePiutangChange} />}
         </div>
       </main>
 
-      {/* ── Mobile bottom nav ── */}
+      {/* ── Mobile Bottom Nav ── */}
       <nav className="bottom-nav">
         {NAV.map(n => (
           <button key={n.id} className={`nav-item ${page === n.id ? "active" : ""}`} onClick={() => setPage(n.id)}>
