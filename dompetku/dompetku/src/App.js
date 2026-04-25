@@ -3,7 +3,7 @@ import "./index.css";
 import { db, auth } from "./firebase";
 import {
   collection, addDoc, deleteDoc, doc, updateDoc,
-  query, orderBy, onSnapshot, setDoc, getDoc
+  query, orderBy, onSnapshot
 } from "firebase/firestore";
 import {
   onAuthStateChanged, signInWithEmailAndPassword,
@@ -88,7 +88,7 @@ function EditPopup({ txn, onSave, onCancel }) {
   return (
     <div className="overlay" onClick={onCancel}>
       <div className="sheet" onClick={e => e.stopPropagation()}>
-        <div className="sheet-title">✏️ Edit Transaksi</div>
+        <div className="sheet-title">Edit Transaksi</div>
         <div className="form-group">
           <label className="form-label">Deskripsi</label>
           <input className="form-input" value={form.description}
@@ -138,9 +138,9 @@ function SaldoAwalPopup({ current, onSave, onCancel }) {
   return (
     <div className="overlay" onClick={onCancel}>
       <div className="sheet" onClick={e => e.stopPropagation()}>
-        <div className="sheet-title">💳 Saldo Awal</div>
-        <p style={{ fontSize: 13, color: "var(--text2)", marginBottom: 16 }}>
-          Masukkan saldo dompet/rekening kamu saat ini sebagai titik awal perhitungan.
+        <div className="sheet-title">Set Saldo Awal</div>
+        <p style={{ fontSize: 13, color: "var(--text2)", marginBottom: 18, fontWeight: 500, lineHeight: 1.5 }}>
+          Masukkan saldo dompet/rekening kamu sebagai titik awal perhitungan.
         </p>
         <div className="form-group">
           <label className="form-label">Saldo (Rp)</label>
@@ -233,6 +233,15 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal }
   const totalTabungan = savings.reduce((s, sv) => s + (sv.current || 0), 0);
   const mood = getMoodMessage(saldo, pemasukan);
 
+  // Last month comparison
+  const lastMonth = transactions.filter(t => {
+    const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || 0);
+    const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear() && t.type === "expense";
+  }).reduce((s, t) => s + t.amount, 0);
+
+  const diffPct = lastMonth > 0 ? Math.round(((pengeluaran - lastMonth) / lastMonth) * 100) : null;
+
   const chartData = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
     const label = d.toLocaleDateString("id-ID", { month: "short" });
@@ -252,6 +261,8 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal }
     }, {})
   ).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 5);
 
+  const topCat = catData[0];
+
   const recentTxns = [...transactions].sort((a, b) => {
     const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
     const db2 = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
@@ -260,30 +271,51 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal }
 
   return (
     <div>
-      <div className="mood-banner" style={{ background: mood.color + "18", border: `1px solid ${mood.color}33`, color: mood.color }}>
-        {mood.msg}
+      {/* Hero Card - Saldo Utama */}
+      <div className="hero-card" onClick={onSetSaldoAwal}>
+        <div className="hero-label">
+          <div className="hero-label-icon">💳</div>
+          Saldo Saat Ini
+        </div>
+        <div className={`hero-amount ${saldo < 0 ? "negative" : ""}`}>
+          {fmt(saldo)}
+        </div>
+        <div className="hero-footer">
+          <span>{now.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</span>
+          <span className="hero-edit-hint">Ubah saldo awal</span>
+        </div>
       </div>
 
+      {/* Metrics Grid */}
       <div className="metrics-grid">
-        <div className="metric-card">
+        <div className="metric-card income">
           <div className="metric-label">Pemasukan</div>
           <div className="metric-value green">{fmt(pemasukan)}</div>
+          <div className="metric-trend">bulan ini</div>
         </div>
-        <div className="metric-card">
+        <div className="metric-card expense">
           <div className="metric-label">Pengeluaran</div>
           <div className="metric-value red">{fmt(pengeluaran)}</div>
+          <div className="metric-trend" style={{ color: diffPct !== null ? (diffPct > 0 ? "var(--red)" : "var(--green)") : "var(--text3)" }}>
+            {diffPct !== null ? (diffPct > 0 ? `▲ ${diffPct}% vs bulan lalu` : `▼ ${Math.abs(diffPct)}% vs bulan lalu`) : "bulan ini"}
+          </div>
         </div>
-        <div className="metric-card clickable" onClick={onSetSaldoAwal}>
-          <div className="metric-label">Saldo Saat Ini <span className="edit-hint">✏️</span></div>
-          <div className={`metric-value ${saldo >= 0 ? "blue" : "red"}`}>{fmt(saldo)}</div>
-        </div>
-        <div className="metric-card">
+        <div className="metric-card saving">
           <div className="metric-label">Total Tabungan</div>
-          <div className="metric-value amber">{fmt(totalTabungan)}</div>
+          <div className="metric-value blue">{fmt(totalTabungan)}</div>
+          <div className="metric-trend">{savings.length} target aktif</div>
         </div>
       </div>
 
-      {/* Desktop: side by side charts */}
+      {/* Insight banner */}
+      {(topCat || diffPct !== null) && (
+        <div className="mood-banner" style={{ background: mood.color + "14", border: `1.5px solid ${mood.color}28`, color: mood.color }}>
+          {mood.msg}
+          {topCat && <span style={{ marginLeft: 8, opacity: 0.8 }}>· Terbesar: {CATEGORY_ICONS[topCat.name]} {topCat.name} ({fmt(topCat.value)})</span>}
+        </div>
+      )}
+
+      {/* Charts */}
       <div className="chart-row">
         <div className="card chart-main">
           <div className="card-title">Tren Pengeluaran</div>
@@ -291,37 +323,37 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal }
             <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="label" tick={{ fill: "var(--text3)", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="label" tick={{ fill: "var(--text3)", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "var(--text3)", fontSize: 10 }} axisLine={false} tickLine={false}
                 tickFormatter={v => v >= 1000000 ? `${v / 1000000}jt` : v >= 1000 ? `${v / 1000}rb` : v} />
-              <Tooltip formatter={v => fmt(v)} labelStyle={{ color: "var(--text)" }}
-                contentStyle={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-              <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2} fill="url(#grad)" />
+              <Tooltip formatter={v => fmt(v)} labelStyle={{ color: "var(--text)", fontWeight: 600 }}
+                contentStyle={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 500 }} />
+              <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2.5} fill="url(#grad)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
         {catData.length > 0 && (
           <div className="card chart-side">
-            <div className="card-title">Kategori</div>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <ResponsiveContainer width={100} height={100}>
+            <div className="card-title">Kategori Bulan Ini</div>
+            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+              <ResponsiveContainer width={90} height={90}>
                 <PieChart>
-                  <Pie data={catData} cx="50%" cy="50%" innerRadius={26} outerRadius={46} dataKey="value" paddingAngle={2}>
+                  <Pie data={catData} cx="50%" cy="50%" innerRadius={24} outerRadius={44} dataKey="value" paddingAngle={3}>
                     {catData.map((entry, i) => <Cell key={i} fill={CATEGORY_COLORS[entry.name] || "#94a3b8"} />)}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
                 {catData.map((c, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5 }}>
                     <div style={{ width: 7, height: 7, borderRadius: "50%", background: CATEGORY_COLORS[c.name] || "#94a3b8", flexShrink: 0 }} />
-                    <span style={{ flex: 1, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
-                    <span className="mono" style={{ color: "var(--text)", fontSize: 10 }}>{fmt(c.value)}</span>
+                    <span style={{ flex: 1, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>{c.name}</span>
+                    <span style={{ color: "var(--text)", fontSize: 10.5, fontWeight: 700, fontFamily: "var(--mono)" }}>{fmt(c.value)}</span>
                   </div>
                 ))}
               </div>
@@ -330,12 +362,17 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal }
         )}
       </div>
 
+      {/* Recent Transactions */}
       <div className="card">
-        <div className="section-header">
-          <div className="section-title">Transaksi Terbaru</div>
+        <div className="section-header" style={{ marginBottom: 12 }}>
+          <div className="card-title" style={{ marginBottom: 0 }}>Transaksi Terbaru</div>
         </div>
         {recentTxns.length === 0 ? (
-          <div className="empty-state"><div className="emoji">📭</div><p>Belum ada transaksi</p></div>
+          <div className="empty-state">
+            <div className="emoji">👀</div>
+            <p>Belum ada transaksi</p>
+            <p className="empty-sub">Yuk mulai catat keuanganmu!</p>
+          </div>
         ) : (
           recentTxns.map(t => (
             <div key={t.id} className="txn-item">
@@ -379,7 +416,11 @@ function Transactions({ transactions, onDelete, onEdit }) {
       </div>
       <div className="card">
         {sorted.length === 0 ? (
-          <div className="empty-state"><div className="emoji">🔍</div><p>Tidak ada transaksi</p></div>
+          <div className="empty-state">
+            <div className="emoji">🔍</div>
+            <p>Tidak ada transaksi</p>
+            <p className="empty-sub">Coba pilih kategori lain</p>
+          </div>
         ) : (
           sorted.map(t => (
             <div key={t.id} className="txn-item">
@@ -448,7 +489,7 @@ function Budget({ transactions, budgets, setBudgets, onOverspend }) {
           return (
             <div key={b.category} className="budget-item">
               <div className="budget-header">
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span>{CATEGORY_ICONS[b.category]}</span>
                   <span className="budget-name">{b.category}</span>
                 </div>
@@ -530,7 +571,11 @@ function Savings({ savings, setSavings }) {
       </div>
       <div className="card">
         {savings.length === 0 ? (
-          <div className="empty-state"><div className="emoji">🏦</div><p>Belum ada target tabungan</p></div>
+          <div className="empty-state">
+            <div className="emoji">🚀</div>
+            <p>Belum ada target tabungan</p>
+            <p className="empty-sub">Mulai set tujuan finansialmu!</p>
+          </div>
         ) : savings.map(sv => {
           const pct = Math.min(100, Math.round(((sv.current || 0) / sv.target) * 100));
           const weekly = sv.deadline ? getWeeklySavingsTarget(sv.target, sv.current || 0, sv.deadline) : null;
@@ -546,9 +591,9 @@ function Savings({ savings, setSavings }) {
                 <div className="progress-wrap">
                   <div className="progress-fill" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--green)" : "var(--accent)" }} />
                 </div>
-                {pct >= 100 && <div style={{ fontSize: 11, color: "var(--green)", marginTop: 3, fontWeight: 600 }}>🎉 Target tercapai!</div>}
+                {pct >= 100 && <div style={{ fontSize: 11.5, color: "var(--green)", marginTop: 4, fontWeight: 700 }}>🎉 Target tercapai!</div>}
                 {weekly && pct < 100 && (
-                  <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 3 }}>
+                  <div style={{ fontSize: 11.5, color: "var(--text3)", marginTop: 4, fontWeight: 500 }}>
                     {weekly.weeksLeft} minggu lagi · sisa {fmt(weekly.remaining)}
                   </div>
                 )}
@@ -562,7 +607,7 @@ function Savings({ savings, setSavings }) {
       {showAdd && (
         <div className="overlay" onClick={() => setShowAdd(false)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
-            <div className="sheet-title">Target Tabungan Baru</div>
+            <div className="sheet-title">Target Baru</div>
             <div className="form-group">
               <label className="form-label">Icon</label>
               <input className="form-input" value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} placeholder="🎯" maxLength={2} />
@@ -651,7 +696,13 @@ function Piutang({ piutangs, setPiutangs }) {
       </div>
 
       {active.length === 0 && lunas.length === 0 && (
-        <div className="card"><div className="empty-state"><div className="emoji">🤝</div><p>Belum ada piutang</p></div></div>
+        <div className="card">
+          <div className="empty-state">
+            <div className="emoji">🤝</div>
+            <p>Belum ada piutang</p>
+            <p className="empty-sub">Catat siapa yang punya hutang ke kamu</p>
+          </div>
+        </div>
       )}
 
       {active.map(p => (
@@ -671,7 +722,7 @@ function Piutang({ piutangs, setPiutangs }) {
             <div className="progress-fill" style={{ width: `${Math.round(((p.total - p.sisa) / p.total) * 100)}%`, background: "var(--green)" }} />
           </div>
           {(p.history || []).length > 0 && (
-            <div style={{ marginTop: 6, fontSize: 11, color: "var(--text3)" }}>
+            <div style={{ marginTop: 7, fontSize: 11.5, color: "var(--text3)", fontWeight: 500 }}>
               Cicilan: {p.history.map((h, i) => <span key={i}>{fmt(h.amount)} ({h.date}){i < p.history.length - 1 ? ", " : ""}</span>)}
             </div>
           )}
@@ -726,7 +777,7 @@ function Piutang({ piutangs, setPiutangs }) {
         <div className="overlay" onClick={() => setShowBayar(null)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-title">Catat Bayar dari {showBayar.name}</div>
-            <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 12 }}>Sisa hutang: {fmt(showBayar.sisa)}</div>
+            <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 14, fontWeight: 500 }}>Sisa hutang: {fmt(showBayar.sisa)}</div>
             <div className="form-group">
               <label className="form-label">Jumlah Bayar (Rp)</label>
               <input className="form-input" type="number" value={bayarAmt} onChange={e => setBayarAmt(e.target.value)}
@@ -744,7 +795,7 @@ function Piutang({ piutangs, setPiutangs }) {
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [user, setUser] = useState(undefined); // undefined = loading, null = not logged in
+  const [user, setUser] = useState(undefined);
   const [page, setPage] = useState("dashboard");
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState(BUDGETS_DEFAULT);
@@ -761,7 +812,6 @@ export default function App() {
   const [saldoAwal, setSaldoAwal] = useState(0);
   const [showSaldoPopup, setShowSaldoPopup] = useState(false);
 
-  // ── Theme ──
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("dompetku_theme", theme);
@@ -769,13 +819,11 @@ export default function App() {
 
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
-  // ── Auth ──
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, u => setUser(u));
     return unsub;
   }, []);
 
-  // ── Load from Firebase (per user) ──
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, `users/${user.uid}/transactions`), orderBy("createdAt", "desc"));
@@ -785,7 +833,6 @@ export default function App() {
     return unsub;
   }, [user]);
 
-  // ── Load localStorage ──
   useEffect(() => {
     if (!user) return;
     const key = `dompetku_${user.uid}`;
@@ -796,21 +843,9 @@ export default function App() {
     const sa = localStorage.getItem(`${key}_saldoAwal`); if (sa) setSaldoAwal(parseInt(sa));
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    const key = `dompetku_${user.uid}`;
-    localStorage.setItem(`${key}_savings`, JSON.stringify(savings));
-  }, [savings, user]);
-  useEffect(() => {
-    if (!user) return;
-    const key = `dompetku_${user.uid}`;
-    localStorage.setItem(`${key}_piutangs`, JSON.stringify(piutangs));
-  }, [piutangs, user]);
-  useEffect(() => {
-    if (!user) return;
-    const key = `dompetku_${user.uid}`;
-    localStorage.setItem(`${key}_budgets`, JSON.stringify(budgets));
-  }, [budgets, user]);
+  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_savings`, JSON.stringify(savings)); }, [savings, user]);
+  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_piutangs`, JSON.stringify(piutangs)); }, [piutangs, user]);
+  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_budgets`, JSON.stringify(budgets)); }, [budgets, user]);
 
   const showToast = (msg) => setToast(msg);
 
@@ -884,7 +919,7 @@ export default function App() {
     setSaldoAwal(val);
     localStorage.setItem(`dompetku_${user?.uid}_saldoAwal`, val);
     setShowSaldoPopup(false);
-    showToast(`💳 Saldo awal diset: ${fmt(val)}`);
+    showToast(`💳 Saldo awal: ${fmt(val)}`);
   };
 
   const handleKeyDown = (e) => { if (e.key === "Enter") handleSubmit(); };
@@ -912,19 +947,16 @@ export default function App() {
     },
   ];
 
-  // ── Loading state ──
   if (user === undefined) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)" }}>
-        <div className="spinner" style={{ width: 32, height: 32 }} />
+        <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
       </div>
     );
   }
 
-  // ── Not logged in ──
   if (!user) return <LoginPage />;
 
-  // ── Main App ──
   return (
     <div className="app">
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
@@ -932,7 +964,7 @@ export default function App() {
       {editingTxn && <EditPopup txn={editingTxn} onSave={handleEdit} onCancel={() => setEditingTxn(null)} />}
       {showSaldoPopup && <SaldoAwalPopup current={saldoAwal} onSave={handleSaldoSave} onCancel={() => setShowSaldoPopup(false)} />}
 
-      {/* Desktop sidebar + mobile header */}
+      {/* Sidebar (desktop) */}
       <aside className="sidebar">
         <div className="sidebar-brand">
           <span className="brand-icon">💰</span>
@@ -948,8 +980,8 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <button className="theme-btn" onClick={toggleTheme} title="Toggle theme">
-            {theme === "dark" ? "☀️" : "🌙"} {theme === "dark" ? "Light" : "Dark"}
+          <button className="theme-btn" onClick={toggleTheme}>
+            {theme === "dark" ? "☀️" : "🌙"} {theme === "dark" ? "Mode Terang" : "Mode Gelap"}
           </button>
           <button className="sidebar-item logout-btn" onClick={() => signOut(auth)}>
             <span className="sidebar-icon">
@@ -963,21 +995,21 @@ export default function App() {
       {/* Mobile header */}
       <header className="mobile-header">
         <div className="mobile-brand">
-          <span>💰</span> <span>Dompetku</span>
+          <span>💰</span>
+          <span>Dompetku</span>
           {streak > 0 && <span className="streak-badge">🔥 {streak}</span>}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="icon-btn" onClick={toggleTheme}>{theme === "dark" ? "☀️" : "🌙"}</button>
-          <button className="icon-btn" onClick={() => signOut(auth)} title="Keluar">
+          <button className="icon-btn" onClick={() => signOut(auth)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
           </button>
         </div>
       </header>
 
-      {/* Main content area */}
+      {/* Main */}
       <main className="main-wrapper">
         <div className="main-content">
-          {/* Quick input */}
           <div className="quick-input-bar">
             <input
               value={input}
