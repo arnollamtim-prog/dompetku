@@ -866,13 +866,15 @@ function Savings({ savings, setSavings }) {
 }
 
 // ─── Piutang Page ─────────────────────────────────────────────────────────────
-function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
+function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAccounts }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showBayar, setShowBayar] = useState(null);
   const [editingPiutang, setEditingPiutang] = useState(null);
   const [form, setForm] = useState({ name: "", amount: "", note: "", date: "" });
   const [editForm, setEditForm] = useState({ name: "", amount: "", note: "", date: "" });
   const [bayarAmt, setBayarAmt] = useState("");
+  // Step bayar: null → "input_amt" → "pilih_method" → "pilih_rekening"
+  const [bayarStep, setBayarStep] = useState("input_amt");
 
   const handleAdd = () => {
     if (!form.name || !form.amount) return;
@@ -881,12 +883,30 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
     setShowAdd(false); setForm({ name: "", amount: "", note: "", date: "" });
   };
 
-  const handleBayar = (p) => {
+  const handleBayarLanjut = () => {
+    const amt = parseInt(bayarAmt);
+    if (!amt) return;
+    setBayarStep("pilih_method");
+  };
+
+  const handleBayar = (p, method, accountId) => {
     const amt = parseInt(bayarAmt); if (!amt) return;
     const newSisa = Math.max(0, p.sisa - amt);
-    const updated = piutangs.map(x => x.id === p.id ? { ...x, sisa: newSisa, history: [...(x.history || []), { amount: amt, date: new Date().toLocaleDateString("id-ID") }], lunas: newSisa === 0 } : x);
+    const acc = accounts.find(a => a.id === accountId);
+    const updated = piutangs.map(x => x.id === p.id ? {
+      ...x, sisa: newSisa,
+      history: [...(x.history || []), { amount: amt, date: new Date().toLocaleDateString("id-ID"), method, accountName: acc?.name || method }],
+      lunas: newSisa === 0
+    } : x);
     setPiutangs(updated); onPiutangChange(updated);
-    setShowBayar(null); setBayarAmt("");
+
+    // Update saldo rekening yang dipilih
+    if (accountId && accountId !== "cash_only") {
+      const updatedAccs = accounts.map(a => a.id === accountId ? { ...a, balance: (a.balance || 0) + amt } : a);
+      onUpdateAccounts(updatedAccs);
+    }
+
+    setShowBayar(null); setBayarAmt(""); setBayarStep("input_amt");
   };
 
   const handleEditOpen = (p) => {
@@ -1006,15 +1026,65 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
       )}
 
       {showBayar && (
-        <div className="overlay" onClick={() => setShowBayar(null)}>
+        <div className="overlay" onClick={() => { setShowBayar(null); setBayarAmt(""); setBayarStep("input_amt"); }}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
-            <div className="sheet-title">Catat Bayar dari {showBayar.name}</div>
-            <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 14, fontWeight: 500 }}>Sisa hutang: {fmt(showBayar.sisa)}</div>
-            <div className="form-group"><label className="form-label">Jumlah Bayar (Rp)</label>
-              <input className="form-input" type="number" value={bayarAmt} onChange={e => setBayarAmt(e.target.value)} onKeyDown={e => e.key === "Enter" && handleBayar(showBayar)} placeholder="100000" autoFocus />
-            </div>
-            <button className="btn-primary" onClick={() => handleBayar(showBayar)}>Simpan</button>
-            <button className="btn-ghost" onClick={() => setShowBayar(null)}>Batal</button>
+
+            {/* Step 1: Input jumlah */}
+            {bayarStep === "input_amt" && (
+              <>
+                <div className="sheet-title">Catat Bayar dari {showBayar.name}</div>
+                <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 14, fontWeight: 500 }}>Sisa hutang: {fmt(showBayar.sisa)}</div>
+                <div className="form-group"><label className="form-label">Jumlah Bayar (Rp)</label>
+                  <input className="form-input" type="number" value={bayarAmt} onChange={e => setBayarAmt(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && handleBayarLanjut()} placeholder="100000" autoFocus />
+                </div>
+                <button className="btn-primary" onClick={handleBayarLanjut} disabled={!bayarAmt}>Lanjut →</button>
+                <button className="btn-ghost" onClick={() => { setShowBayar(null); setBayarAmt(""); setBayarStep("input_amt"); }}>Batal</button>
+              </>
+            )}
+
+            {/* Step 2: Pilih Cash atau Bank */}
+            {bayarStep === "pilih_method" && (
+              <>
+                <div className="sheet-title">Uang masuk ke mana?</div>
+                <div className="method-subtitle">🤝 {showBayar.name} bayar {fmt(parseInt(bayarAmt) || 0)}</div>
+                <div className="method-buttons">
+                  <button className="method-btn" onClick={() => handleBayar(showBayar, "cash", "cash")}>
+                    <span>💵</span>Cash
+                  </button>
+                  <button className="method-btn" onClick={() => setBayarStep("pilih_rekening")}>
+                    <span>🏦</span>Bank
+                  </button>
+                </div>
+                <button className="btn-ghost" style={{ marginTop: 8 }} onClick={() => setBayarStep("input_amt")}>← Kembali</button>
+              </>
+            )}
+
+            {/* Step 3: Pilih rekening bank */}
+            {bayarStep === "pilih_rekening" && (
+              <>
+                <div className="sheet-title">Masuk rekening mana?</div>
+                <div className="method-subtitle">🤝 {showBayar.name} bayar {fmt(parseInt(bayarAmt) || 0)}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {accounts.filter(a => a.id !== "cash").map(acc => (
+                    <button key={acc.id} onClick={() => handleBayar(showBayar, "transfer", acc.id)}
+                      style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius)", cursor: "pointer", transition: "all 0.18s", textAlign: "left" }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--sidebar-active-bg)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg3)"; }}
+                    >
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: (acc.color || "#6366f1") + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{acc.icon}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{acc.name}</div>
+                        <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2, fontWeight: 500 }}>Saldo: {fmtLong(acc.balance)}</div>
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--green)", fontWeight: 700 }}>+{fmt(parseInt(bayarAmt) || 0)}</div>
+                    </button>
+                  ))}
+                </div>
+                <button className="btn-ghost" style={{ marginTop: 8 }} onClick={() => setBayarStep("pilih_method")}>← Kembali</button>
+              </>
+            )}
+
           </div>
         </div>
       )}
@@ -1148,6 +1218,7 @@ export default function App() {
   };
 
   const handleSaveAccounts = (updated) => { setAccounts(updated); setShowManageAccounts(false); showToast("💳 Rekening diperbarui"); };
+  const handleUpdateAccountsSilent = (updated) => { setAccounts(updated); };
   const handleSaveAssets = (updated) => { setAssets(updated); setShowManageAssets(false); showToast("💍 Aset diperbarui"); };
   const handlePiutangChange = (updated) => setPiutangs(updated);
   const handleKeyDown = (e) => { if (e.key === "Enter") handleSubmit(); };
@@ -1228,7 +1299,7 @@ export default function App() {
           {page === "transactions" && <Transactions transactions={transactions} onDelete={handleDelete} onEdit={setEditingTxn} />}
           {page === "budget" && <Budget transactions={transactions} budgets={budgets} setBudgets={setBudgets} onOverspend={handleOverspend} />}
           {page === "savings" && <Savings savings={savings} setSavings={setSavings} />}
-          {page === "piutang" && <Piutang piutangs={piutangs} setPiutangs={setPiutangs} onPiutangChange={handlePiutangChange} />}
+          {page === "piutang" && <Piutang piutangs={piutangs} setPiutangs={setPiutangs} onPiutangChange={handlePiutangChange} accounts={accounts} onUpdateAccounts={handleUpdateAccountsSilent} />}
         </div>
       </main>
 
