@@ -69,10 +69,11 @@ function Toast({ msg, onDone }) {
 
 // ─── Method Popup ─────────────────────────────────────────────────────────────
 function MethodPopup({ parsed, onSelect, onCancel }) {
+  const isIncome = parsed.type === "income";
   return (
     <div className="overlay" onClick={onCancel}>
       <div className="sheet" onClick={e => e.stopPropagation()}>
-        <div className="sheet-title">Bayar pakai apa?</div>
+        <div className="sheet-title">{isIncome ? "Masuk ke mana?" : "Bayar pakai apa?"}</div>
         <div className="method-subtitle">
           {CATEGORY_ICONS[parsed.category] || "📌"} {parsed.description} · {fmtLong(parsed.amount)}
         </div>
@@ -88,10 +89,11 @@ function MethodPopup({ parsed, onSelect, onCancel }) {
 
 // ─── Account Picker Popup ─────────────────────────────────────────────────────
 function AccountPickerPopup({ method, parsed, accounts, onSelect, onCancel }) {
+  const isIncome = parsed.type === "income";
   return (
     <div className="overlay" onClick={onCancel}>
       <div className="sheet" onClick={e => e.stopPropagation()}>
-        <div className="sheet-title">Dari rekening mana?</div>
+        <div className="sheet-title">{isIncome ? "Masuk ke rekening mana?" : "Dari rekening mana?"}</div>
         <div className="method-subtitle">
           {CATEGORY_ICONS[parsed.category] || "📌"} {parsed.description} · {fmtLong(parsed.amount)} · {method === "qris" ? "📱 QRIS" : "🏦 Transfer"}
         </div>
@@ -1184,14 +1186,25 @@ export default function App() {
   };
 
   const saveTransaction = async (parsed) => {
-    // Transaksi selalu disimpan dengan tanggal hari ini
+    // Simpan transaksi dengan tanggal hari ini
     await addDoc(collection(db, `users/${user.uid}/transactions`), {
       description: parsed.description, amount: parsed.amount,
       category: parsed.category, type: parsed.type,
       method: parsed.method, accountId: parsed.accountId || null,
       accountName: parsed.accountName || null,
-      createdAt: new Date()  // ← tanggal hari ini otomatis
+      createdAt: new Date()
     });
+
+    // ── Update saldo rekening otomatis ──
+    if (parsed.accountId) {
+      const updatedAccounts = accounts.map(a => {
+        if (a.id !== parsed.accountId) return a;
+        const delta = parsed.type === "income" ? parsed.amount : -parsed.amount;
+        return { ...a, balance: (a.balance || 0) + delta };
+      });
+      setAccounts(updatedAccounts);
+    }
+
     const newStreak = streak + 1; setStreak(newStreak);
     localStorage.setItem(`dompetku_${user.uid}_streak`, newStreak);
     showToast(`✅ ${parsed.description} · ${fmtLong(parsed.amount)}`);
