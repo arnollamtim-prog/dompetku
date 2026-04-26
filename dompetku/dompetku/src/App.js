@@ -74,7 +74,7 @@ function MethodPopup({ parsed, onSelect, onCancel }) {
       <div className="sheet" onClick={e => e.stopPropagation()}>
         <div className="sheet-title">Bayar pakai apa?</div>
         <div className="method-subtitle">
-          {CATEGORY_ICONS[parsed.category] || "📌"} {parsed.description} · {fmt(parsed.amount)}
+          {CATEGORY_ICONS[parsed.category] || "📌"} {parsed.description} · {fmtLong(parsed.amount)}
         </div>
         <div className="method-buttons">
           <button className="method-btn" onClick={() => onSelect("cash")}><span>💵</span>Cash</button>
@@ -93,7 +93,7 @@ function AccountPickerPopup({ method, parsed, accounts, onSelect, onCancel }) {
       <div className="sheet" onClick={e => e.stopPropagation()}>
         <div className="sheet-title">Dari rekening mana?</div>
         <div className="method-subtitle">
-          {CATEGORY_ICONS[parsed.category] || "📌"} {parsed.description} · {fmt(parsed.amount)} · {method === "qris" ? "📱 QRIS" : "🏦 Transfer"}
+          {CATEGORY_ICONS[parsed.category] || "📌"} {parsed.description} · {fmtLong(parsed.amount)} · {method === "qris" ? "📱 QRIS" : "🏦 Transfer"}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {accounts.map(acc => (
@@ -386,10 +386,10 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
     if (diffPctExp > 0) insights.push({ icon: "📈", iconClass: "up", label: `Pengeluaran naik ${diffPctExp}%`, sub: "Dibanding bulan lalu" });
     else insights.push({ icon: "📉", iconClass: "star", label: `Pengeluaran turun ${Math.abs(diffPctExp)}%`, sub: "Dibanding bulan lalu" });
   }
-  if (pemasukan > pengeluaran) insights.push({ icon: "✨", iconClass: "star", label: "Kamu lebih hemat", sub: `Surplus ${fmt(pemasukan - pengeluaran)} bulan ini 😊` });
-  else if (pengeluaran > pemasukan && pemasukan > 0) insights.push({ icon: "⚠️", iconClass: "up", label: "Pengeluaran melebihi pemasukan", sub: `Defisit ${fmt(pengeluaran - pemasukan)}` });
-  if (topCat) insights.push({ icon: CATEGORY_ICONS[topCat.name] || "📌", iconClass: "star", label: `Terbesar: ${topCat.name}`, sub: fmt(topCat.value) });
-  if (includePiutang && totalPiutangAktif > 0) insights.push({ icon: "🤝", iconClass: "star", label: `Piutang aktif: ${fmt(totalPiutangAktif)}`, sub: "Include dalam saldo" });
+  if (pemasukan > pengeluaran) insights.push({ icon: "✨", iconClass: "star", label: "Kamu lebih hemat", sub: `Surplus ${fmtLong(pemasukan - pengeluaran)} bulan ini 😊` });
+  else if (pengeluaran > pemasukan && pemasukan > 0) insights.push({ icon: "⚠️", iconClass: "up", label: "Pengeluaran melebihi pemasukan", sub: `Defisit ${fmtLong(pengeluaran - pemasukan)}` });
+  if (topCat) insights.push({ icon: CATEGORY_ICONS[topCat.name] || "📌", iconClass: "star", label: `Terbesar: ${topCat.name}`, sub: fmtLong(topCat.value) });
+  if (includePiutang && totalPiutangAktif > 0) insights.push({ icon: "🤝", iconClass: "star", label: `Piutang aktif: ${fmtLong(totalPiutangAktif)}`, sub: "Include dalam saldo" });
   const shownInsights = insights.slice(0, 2);
 
   return (
@@ -402,7 +402,7 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
             <div className="hero-label"><div className="hero-label-icon">ℹ️</div>Saldo saat ini</div>
             <div className={`hero-amount ${saldo < 0 ? "negative" : ""}`}>{fmtLong(saldo)}</div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginBottom: 4, fontWeight: 500 }}>
-              rekening {fmt(totalRekening)} · aset {fmt(totalAsetBenda)}{includePiutang && totalPiutangAktif > 0 ? ` · piutang ${fmt(totalPiutangAktif)}` : ""}
+              rekening {fmtLong(totalRekening)} · aset {fmtLong(totalAsetBenda)}{includePiutang && totalPiutangAktif > 0 ? ` · piutang ${fmtLong(totalPiutangAktif)}` : ""}
             </div>
           </div>
           <div style={{ position: "relative", zIndex: 1, marginTop: 12 }}>
@@ -449,14 +449,14 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
             <div key={acc.id} style={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "14px 16px", minWidth: 130, flexShrink: 0, boxShadow: "var(--card-shadow)" }}>
               <div style={{ fontSize: 20, marginBottom: 8 }}>{acc.icon}</div>
               <div style={{ fontSize: 11.5, color: "var(--text3)", fontWeight: 600, marginBottom: 4 }}>{acc.name}</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.4px" }}>{fmt(acc.balance)}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.4px" }}>{fmtLong(acc.balance)}</div>
             </div>
           ))}
           {assets.map(asset => (
             <div key={asset.id} style={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "14px 16px", minWidth: 130, flexShrink: 0, boxShadow: "var(--card-shadow)" }}>
               <div style={{ fontSize: 20, marginBottom: 8 }}>{asset.icon}</div>
               <div style={{ fontSize: 11.5, color: "var(--text3)", fontWeight: 600, marginBottom: 4 }}>{asset.name}</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--amber)", letterSpacing: "-0.4px" }}>{fmt(asset.value)}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--amber)", letterSpacing: "-0.4px" }}>{fmtLong(asset.value)}</div>
             </div>
           ))}
         </div>
@@ -467,25 +467,25 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
         <div className="metric-card">
           <div className="metric-icon-wrap green">↓</div>
           <div className="metric-label">Pemasukan</div>
-          <div className="metric-value green">{fmt(pemasukan)}</div>
+          <div className="metric-value green">{fmtLong(pemasukan)}</div>
           <div className={`metric-trend ${diffPctInc !== null ? (diffPctInc >= 0 ? "positive" : "negative") : ""}`}>{diffPctInc !== null ? `${diffPctInc >= 0 ? "↑" : "↓"} ${Math.abs(diffPctInc)}% dari bulan lalu` : "bulan ini"}</div>
         </div>
         <div className="metric-card">
           <div className="metric-icon-wrap red">↑</div>
           <div className="metric-label">Pengeluaran</div>
-          <div className="metric-value red">{fmt(pengeluaran)}</div>
+          <div className="metric-value red">{fmtLong(pengeluaran)}</div>
           <div className={`metric-trend ${diffPctExp !== null ? (diffPctExp > 0 ? "negative" : "positive") : ""}`}>{diffPctExp !== null ? `${diffPctExp > 0 ? "↑" : "↓"} ${Math.abs(diffPctExp)}% dari bulan lalu` : "bulan ini"}</div>
         </div>
         <div className="metric-card">
           <div className="metric-icon-wrap blue">💳</div>
           <div className="metric-label">Saldo Saat Ini</div>
-          <div className="metric-value blue">{fmt(saldo)}</div>
+          <div className="metric-value blue">{fmtLong(saldo)}</div>
           <div className="metric-trend">rekening + aset{includePiutang ? " + piutang" : ""}</div>
         </div>
         <div className="metric-card">
           <div className="metric-icon-wrap purple">🏦</div>
           <div className="metric-label">Total Tabungan</div>
-          <div className="metric-value purple">{fmt(totalTabungan)}</div>
+          <div className="metric-value purple">{fmtLong(totalTabungan)}</div>
           <div className="metric-trend">{savings.length > 0 ? `${savings.length} target aktif` : "belum ada target"}</div>
         </div>
       </div>
@@ -504,14 +504,14 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
               </defs>
               <XAxis dataKey="label" tick={{ fill: "var(--text3)", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "var(--text3)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000000 ? `${v / 1000000}jt` : v >= 1000 ? `${v / 1000}rb` : v} />
-              <Tooltip formatter={v => [fmt(v), "Pengeluaran"]} labelStyle={{ color: "var(--text)", fontWeight: 700, fontSize: 12 }} contentStyle={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 600 }} />
+              <Tooltip formatter={v => [fmtLong(v), "Pengeluaran"]} labelStyle={{ color: "var(--text)", fontWeight: 700, fontSize: 12 }} contentStyle={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 600 }} />
               <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2.5} fill="url(#gradFill)" dot={false} activeDot={{ r: 5, fill: "#6366f1", strokeWidth: 0 }} />
             </AreaChart>
           </ResponsiveContainer>
           {highestMonth && highestMonth.total > 0 && (
             <div className="chart-footer-stat">
               <div className="chart-footer-label"><div className="chart-footer-icon">↑</div><div><div className="chart-footer-text">Pengeluaran tertinggi</div><div className="chart-footer-sub">{highestMonth.label}</div></div></div>
-              <div className="chart-footer-value">{fmt(highestMonth.total)}</div>
+              <div className="chart-footer-value">{fmtLong(highestMonth.total)}</div>
             </div>
           )}
         </div>
@@ -523,7 +523,7 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
             <div key={t.id} className="txn-item">
               <div className="txn-icon" style={{ background: (CATEGORY_COLORS[t.category] || "#94a3b8") + "20" }}>{CATEGORY_ICONS[t.category] || "📌"}</div>
               <div className="txn-info"><div className="txn-name">{t.description}</div><div className="txn-meta">{fmtDate(t.createdAt)} · {t.method || "—"}</div></div>
-              <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>{t.type === "income" ? "+" : "−"}{fmt(t.amount)}</div>
+              <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>{t.type === "income" ? "+" : "−"}{fmtLong(t.amount)}</div>
             </div>
           ))}
           <button className="tambah-txn-btn" onClick={onAddTxn}>+ Tambah Transaksi</button>
@@ -583,15 +583,15 @@ function Transactions({ transactions, onDelete, onEdit }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
           <div style={{ background: "rgba(34,197,94,0.08)", border: "1.5px solid rgba(34,197,94,0.2)", borderRadius: "var(--radius)", padding: "10px 12px", textAlign: "center" }}>
             <div style={{ fontSize: 10, color: "var(--green)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: 4 }}>Pemasukan</div>
-            <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--green)", letterSpacing: "-0.4px" }}>{fmt(pemasukanBulan)}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--green)", letterSpacing: "-0.4px" }}>{fmtLong(pemasukanBulan)}</div>
           </div>
           <div style={{ background: "rgba(239,68,68,0.08)", border: "1.5px solid rgba(239,68,68,0.2)", borderRadius: "var(--radius)", padding: "10px 12px", textAlign: "center" }}>
             <div style={{ fontSize: 10, color: "var(--red)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: 4 }}>Pengeluaran</div>
-            <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--red)", letterSpacing: "-0.4px" }}>{fmt(pengeluaranBulan)}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--red)", letterSpacing: "-0.4px" }}>{fmtLong(pengeluaranBulan)}</div>
           </div>
           <div style={{ background: selisihBulan >= 0 ? "rgba(99,102,241,0.08)" : "rgba(239,68,68,0.08)", border: `1.5px solid ${selisihBulan >= 0 ? "rgba(99,102,241,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: "var(--radius)", padding: "10px 12px", textAlign: "center" }}>
             <div style={{ fontSize: 10, color: selisihBulan >= 0 ? "var(--accent)" : "var(--red)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: 4 }}>{selisihBulan >= 0 ? "Surplus" : "Defisit"}</div>
-            <div style={{ fontSize: 13.5, fontWeight: 800, color: selisihBulan >= 0 ? "var(--accent)" : "var(--red)", letterSpacing: "-0.4px" }}>{fmt(Math.abs(selisihBulan))}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: selisihBulan >= 0 ? "var(--accent)" : "var(--red)", letterSpacing: "-0.4px" }}>{fmtLong(Math.abs(selisihBulan))}</div>
           </div>
         </div>
         {monthTxns.length > 0 && (
@@ -620,7 +620,7 @@ function Transactions({ transactions, onDelete, onEdit }) {
               <div className="txn-meta">{t.category} · {fmtDate(t.createdAt)} · {t.method || "—"}{t.accountName ? ` · ${t.accountName}` : ""}</div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-              <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>{t.type === "income" ? "+" : "−"}{fmt(t.amount)}</div>
+              <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>{t.type === "income" ? "+" : "−"}{fmtLong(t.amount)}</div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button className="action-link edit" onClick={() => onEdit(t)}>edit</button>
                 <button className="action-link delete" onClick={() => onDelete(t.id)}>hapus</button>
@@ -691,7 +691,7 @@ function Budget({ transactions, budgets, setBudgets, onOverspend }) {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span className="budget-pct" style={{ color: over ? "var(--red)" : pct > 80 ? "var(--amber)" : "var(--text3)" }}>
-                    {fmt(spent)} / {fmt(b.limit)}
+                    {fmtLong(spent)} / {fmtLong(b.limit)}
                   </span>
                   <button onClick={() => setEditingBudget({ ...b })} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Edit">✏️</button>
                   <button onClick={() => handleDelete(b.category)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Hapus">🗑️</button>
@@ -700,7 +700,7 @@ function Budget({ transactions, budgets, setBudgets, onOverspend }) {
               <div className="progress-wrap">
                 <div className="progress-fill" style={{ width: `${pct}%`, background: over ? "var(--red)" : pct > 80 ? "var(--amber)" : "var(--green)" }} />
               </div>
-              {over && <div className="over-msg">Over {fmt(spent - b.limit)}! 💸</div>}
+              {over && <div className="over-msg">Over {fmtLong(spent - b.limit)}! 💸</div>}
             </div>
           );
         })}
@@ -805,14 +805,14 @@ function Savings({ savings, setSavings }) {
                   </div>
                 </div>
                 <div className="saving-meta">
-                  {fmt(sv.current || 0)} / {fmt(sv.target)}
-                  {weekly && <span style={{ marginLeft: 6, color: "var(--accent)" }}>· {fmt(weekly.weeklyTarget)}/minggu</span>}
+                  {fmtLong(sv.current || 0)} / {fmtLong(sv.target)}
+                  {weekly && <span style={{ marginLeft: 6, color: "var(--accent)" }}>· {fmtLong(weekly.weeklyTarget)}/minggu</span>}
                 </div>
                 <div className="progress-wrap">
                   <div className="progress-fill" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--green)" : "var(--accent)" }} />
                 </div>
                 {pct >= 100 && <div style={{ fontSize: 11.5, color: "var(--green)", marginTop: 4, fontWeight: 700 }}>🎉 Target tercapai!</div>}
-                {weekly && pct < 100 && <div style={{ fontSize: 11.5, color: "var(--text3)", marginTop: 4, fontWeight: 500 }}>{weekly.weeksLeft} minggu lagi · sisa {fmt(weekly.remaining)}</div>}
+                {weekly && pct < 100 && <div style={{ fontSize: 11.5, color: "var(--text3)", marginTop: 4, fontWeight: 500 }}>{weekly.weeksLeft} minggu lagi · sisa {fmtLong(weekly.remaining)}</div>}
               </div>
               <button className="nabung-btn" onClick={() => setShowDeposit(sv)}>+ Nabung</button>
             </div>
@@ -963,11 +963,11 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
                 <button onClick={() => handleEditOpen(p)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Edit">✏️</button>
                 <button onClick={() => handleDelete(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Hapus">🗑️</button>
               </div>
-              <div className="debt-sisa">Pinjam {fmt(p.total)} · {p.date}</div>
+              <div className="debt-sisa">Pinjam {fmtLong(p.total)} · {p.date}</div>
               {p.note && <div className="debt-sisa">{p.note}</div>}
             </div>
             <div style={{ textAlign: "right" }}>
-              <div className="debt-amt">{fmt(p.sisa)}</div>
+              <div className="debt-amt">{fmtLong(p.sisa)}</div>
               <div className="debt-sisa">sisa</div>
             </div>
           </div>
@@ -976,7 +976,7 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
           </div>
           {(p.history || []).length > 0 && (
             <div style={{ marginTop: 7, fontSize: 11.5, color: "var(--text3)", fontWeight: 500 }}>
-              Cicilan: {p.history.map((h, i) => <span key={i}>{fmt(h.amount)} ({h.date}){i < p.history.length - 1 ? ", " : ""}</span>)}
+              Cicilan: {p.history.map((h, i) => <span key={i}>{fmtLong(h.amount)} ({h.date}){i < p.history.length - 1 ? ", " : ""}</span>)}
             </div>
           )}
           <div className="debt-actions"><button className="debt-pay-btn" onClick={() => setShowBayar(p)}>+ Catat Bayar</button></div>
@@ -989,7 +989,7 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
           {lunas.map(p => (
             <div key={p.id} className="txn-item">
               <div className="txn-icon" style={{ background: "var(--green-dim)" }}>✅</div>
-              <div className="txn-info"><div className="txn-name">{p.name}</div><div className="txn-meta">{fmt(p.total)} · {p.date}</div></div>
+              <div className="txn-info"><div className="txn-name">{p.name}</div><div className="txn-meta">{fmtLong(p.total)} · {p.date}</div></div>
               <button onClick={() => handleDelete(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text3)", fontSize: 16, padding: "2px 6px" }}>×</button>
             </div>
           ))}
@@ -1033,7 +1033,7 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
             {bayarStep === "input_amt" && (
               <>
                 <div className="sheet-title">Catat Bayar dari {showBayar.name}</div>
-                <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 14, fontWeight: 500 }}>Sisa hutang: {fmt(showBayar.sisa)}</div>
+                <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 14, fontWeight: 500 }}>Sisa hutang: {fmtLong(showBayar.sisa)}</div>
                 <div className="form-group"><label className="form-label">Jumlah Bayar (Rp)</label>
                   <input className="form-input" type="number" value={bayarAmt} onChange={e => setBayarAmt(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && handleBayarLanjut()} placeholder="100000" autoFocus />
@@ -1047,7 +1047,7 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
             {bayarStep === "pilih_method" && (
               <>
                 <div className="sheet-title">Uang masuk ke mana?</div>
-                <div className="method-subtitle">🤝 {showBayar.name} bayar {fmt(parseInt(bayarAmt) || 0)}</div>
+                <div className="method-subtitle">🤝 {showBayar.name} bayar {fmtLong(parseInt(bayarAmt) || 0)}</div>
                 <div className="method-buttons">
                   <button className="method-btn" onClick={() => handleBayar(showBayar, "cash", "cash")}>
                     <span>💵</span>Cash
@@ -1064,7 +1064,7 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
             {bayarStep === "pilih_rekening" && (
               <>
                 <div className="sheet-title">Masuk rekening mana?</div>
-                <div className="method-subtitle">🤝 {showBayar.name} bayar {fmt(parseInt(bayarAmt) || 0)}</div>
+                <div className="method-subtitle">🤝 {showBayar.name} bayar {fmtLong(parseInt(bayarAmt) || 0)}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {accounts.filter(a => a.id !== "cash").map(acc => (
                     <button key={acc.id} onClick={() => handleBayar(showBayar, "transfer", acc.id)}
@@ -1077,7 +1077,7 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
                         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{acc.name}</div>
                         <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2, fontWeight: 500 }}>Saldo: {fmtLong(acc.balance)}</div>
                       </div>
-                      <div style={{ fontSize: 12, color: "var(--green)", fontWeight: 700 }}>+{fmt(parseInt(bayarAmt) || 0)}</div>
+                      <div style={{ fontSize: 12, color: "var(--green)", fontWeight: 700 }}>+{fmtLong(parseInt(bayarAmt) || 0)}</div>
                     </button>
                   ))}
                 </div>
@@ -1194,7 +1194,7 @@ export default function App() {
     });
     const newStreak = streak + 1; setStreak(newStreak);
     localStorage.setItem(`dompetku_${user.uid}_streak`, newStreak);
-    showToast(`✅ ${parsed.description} · ${fmt(parsed.amount)}`);
+    showToast(`✅ ${parsed.description} · ${fmtLong(parsed.amount)}`);
   };
 
   const handleDelete = async (id) => {
@@ -1214,7 +1214,7 @@ export default function App() {
 
   const handleSaldoSave = (val) => {
     setSaldoAwal(val); localStorage.setItem(`dompetku_${user?.uid}_saldoAwal`, val);
-    setShowSaldoPopup(false); showToast(`💳 Saldo awal: ${fmt(val)}`);
+    setShowSaldoPopup(false); showToast(`💳 Saldo awal: ${fmtLong(val)}`);
   };
 
   const handleSaveAccounts = (updated) => { setAccounts(updated); setShowManageAccounts(false); showToast("💳 Rekening diperbarui"); };
