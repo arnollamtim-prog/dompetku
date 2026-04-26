@@ -102,29 +102,14 @@ function AccountPickerPopup({ method, parsed, accounts, onSelect, onCancel }) {
               onClick={() => onSelect(acc.id)}
               style={{
                 display: "flex", alignItems: "center", gap: 14,
-                padding: "14px 16px",
-                background: "var(--bg3)",
-                border: "1.5px solid var(--border)",
-                borderRadius: "var(--radius)",
-                cursor: "pointer",
-                transition: "all 0.18s",
-                textAlign: "left",
+                padding: "14px 16px", background: "var(--bg3)",
+                border: "1.5px solid var(--border)", borderRadius: "var(--radius)",
+                cursor: "pointer", transition: "all 0.18s", textAlign: "left",
               }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = "var(--accent)";
-                e.currentTarget.style.background = "var(--sidebar-active-bg)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = "var(--border)";
-                e.currentTarget.style.background = "var(--bg3)";
-              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--sidebar-active-bg)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg3)"; }}
             >
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: acc.color + "20",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 20, flexShrink: 0
-              }}>{acc.icon}</div>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: acc.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{acc.icon}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>{acc.name}</div>
                 <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2, fontWeight: 500 }}>Saldo: {fmtLong(acc.balance)}</div>
@@ -138,51 +123,31 @@ function AccountPickerPopup({ method, parsed, accounts, onSelect, onCancel }) {
   );
 }
 
-// ─── Edit Popup ───────────────────────────────────────────────────────────────
+// ─── Edit Txn Popup ───────────────────────────────────────────────────────────
 function EditPopup({ txn, onSave, onCancel }) {
   const [form, setForm] = useState({
-    description: txn.description,
-    amount: txn.amount,
-    category: txn.category,
-    type: txn.type,
-    method: txn.method || "cash",
+    description: txn.description, amount: txn.amount,
+    category: txn.category, type: txn.type, method: txn.method || "cash",
   });
-
   return (
     <div className="overlay" onClick={onCancel}>
       <div className="sheet" onClick={e => e.stopPropagation()}>
         <div className="sheet-title">Edit Transaksi</div>
-        <div className="form-group">
-          <label className="form-label">Deskripsi</label>
-          <input className="form-input" value={form.description}
-            onChange={e => setForm({ ...form, description: e.target.value })} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Jumlah (Rp)</label>
-          <input className="form-input" type="number" value={form.amount}
-            onChange={e => setForm({ ...form, amount: parseInt(e.target.value) || 0 })} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Kategori</label>
-          <select className="form-select" value={form.category}
-            onChange={e => setForm({ ...form, category: e.target.value })}>
-            {Object.keys(CATEGORY_ICONS).map(c =>
-              <option key={c} value={c}>{CATEGORY_ICONS[c]} {c}</option>
-            )}
+        <div className="form-group"><label className="form-label">Deskripsi</label><input className="form-input" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+        <div className="form-group"><label className="form-label">Jumlah (Rp)</label><input className="form-input" type="number" value={form.amount} onChange={e => setForm({ ...form, amount: parseInt(e.target.value) || 0 })} /></div>
+        <div className="form-group"><label className="form-label">Kategori</label>
+          <select className="form-select" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+            {Object.keys(CATEGORY_ICONS).map(c => <option key={c} value={c}>{CATEGORY_ICONS[c]} {c}</option>)}
           </select>
         </div>
-        <div className="form-group">
-          <label className="form-label">Tipe</label>
-          <select className="form-select" value={form.type}
-            onChange={e => setForm({ ...form, type: e.target.value })}>
+        <div className="form-group"><label className="form-label">Tipe</label>
+          <select className="form-select" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
             <option value="expense">Pengeluaran</option>
             <option value="income">Pemasukan</option>
           </select>
         </div>
-        <div className="form-group">
-          <label className="form-label">Metode</label>
-          <select className="form-select" value={form.method}
-            onChange={e => setForm({ ...form, method: e.target.value })}>
+        <div className="form-group"><label className="form-label">Metode</label>
+          <select className="form-select" value={form.method} onChange={e => setForm({ ...form, method: e.target.value })}>
             <option value="cash">💵 Cash</option>
             <option value="qris">📱 QRIS</option>
             <option value="transfer">🏦 Transfer</option>
@@ -202,15 +167,10 @@ function SaldoAwalPopup({ current, onSave, onCancel }) {
     <div className="overlay" onClick={onCancel}>
       <div className="sheet" onClick={e => e.stopPropagation()}>
         <div className="sheet-title">Set Saldo Awal</div>
-        <p style={{ fontSize: 13, color: "var(--text2)", marginBottom: 18, fontWeight: 500, lineHeight: 1.5 }}>
-          Masukkan saldo dompet/rekening kamu sebagai titik awal perhitungan.
-        </p>
-        <div className="form-group">
-          <label className="form-label">Saldo (Rp)</label>
-          <input className="form-input" type="number" placeholder="1000000"
-            value={val} onChange={e => setVal(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && onSave(parseInt(val) || 0)}
-            autoFocus />
+        <p style={{ fontSize: 13, color: "var(--text2)", marginBottom: 18, fontWeight: 500, lineHeight: 1.5 }}>Masukkan saldo dompet/rekening kamu sebagai titik awal perhitungan.</p>
+        <div className="form-group"><label className="form-label">Saldo (Rp)</label>
+          <input className="form-input" type="number" placeholder="1000000" value={val}
+            onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === "Enter" && onSave(parseInt(val) || 0)} autoFocus />
         </div>
         <button className="btn-primary" onClick={() => onSave(parseInt(val) || 0)}>Simpan</button>
         <button className="btn-ghost" onClick={onCancel}>Batal</button>
@@ -225,26 +185,13 @@ function ManageAccountsPopup({ accounts, onSave, onCancel }) {
   const [showAdd, setShowAdd] = useState(false);
   const [newAcc, setNewAcc] = useState({ name: "", icon: "🏦", balance: "", color: "#6366f1" });
 
-  const handleBalanceChange = (id, val) => {
-    setAccs(accs.map(a => a.id === id ? { ...a, balance: parseInt(val) || 0 } : a));
-  };
-
+  const handleBalanceChange = (id, val) => setAccs(accs.map(a => a.id === id ? { ...a, balance: parseInt(val) || 0 } : a));
   const handleAdd = () => {
     if (!newAcc.name) return;
-    setAccs([...accs, {
-      id: Date.now().toString(),
-      name: newAcc.name,
-      icon: newAcc.icon || "🏦",
-      balance: parseInt(newAcc.balance) || 0,
-      color: newAcc.color || "#6366f1"
-    }]);
-    setNewAcc({ name: "", icon: "🏦", balance: "", color: "#6366f1" });
-    setShowAdd(false);
+    setAccs([...accs, { id: Date.now().toString(), name: newAcc.name, icon: newAcc.icon || "🏦", balance: parseInt(newAcc.balance) || 0, color: newAcc.color || "#6366f1" }]);
+    setNewAcc({ name: "", icon: "🏦", balance: "", color: "#6366f1" }); setShowAdd(false);
   };
-
-  const handleDelete = (id) => {
-    setAccs(accs.filter(a => a.id !== id));
-  };
+  const handleDelete = (id) => setAccs(accs.filter(a => a.id !== id));
 
   return (
     <div className="overlay" onClick={onCancel}>
@@ -252,77 +199,31 @@ function ManageAccountsPopup({ accounts, onSave, onCancel }) {
         <div className="sheet-title">Kelola Rekening</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
           {accs.map(acc => (
-            <div key={acc.id} style={{
-              display: "flex", alignItems: "center", gap: 12,
-              padding: "12px 14px",
-              background: "var(--bg3)",
-              border: "1.5px solid var(--border)",
-              borderRadius: "var(--radius)",
-            }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 9,
-                background: acc.color + "20",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18, flexShrink: 0
-              }}>{acc.icon}</div>
+            <div key={acc.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius)" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: acc.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{acc.icon}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>{acc.name}</div>
-                <input
-                  type="number"
-                  className="form-input"
-                  style={{ padding: "7px 10px", fontSize: 13 }}
-                  placeholder="Saldo awal"
-                  value={acc.balance || ""}
-                  onChange={e => handleBalanceChange(acc.id, e.target.value)}
-                />
+                <input type="number" className="form-input" style={{ padding: "7px 10px", fontSize: 13 }} placeholder="Saldo awal" value={acc.balance || ""} onChange={e => handleBalanceChange(acc.id, e.target.value)} />
               </div>
               {!["bca", "bank-lampung", "cash"].includes(acc.id) && (
-                <button
-                  onClick={() => handleDelete(acc.id)}
-                  style={{ background: "none", border: "none", color: "var(--text3)", fontSize: 18, cursor: "pointer", padding: 4 }}
-                >×</button>
+                <button onClick={() => handleDelete(acc.id)} style={{ background: "none", border: "none", color: "var(--text3)", fontSize: 18, cursor: "pointer", padding: 4 }}>×</button>
               )}
             </div>
           ))}
         </div>
-
         {showAdd ? (
-          <div style={{
-            padding: "14px", background: "var(--bg3)",
-            border: "1.5px solid var(--border)", borderRadius: "var(--radius)", marginBottom: 12
-          }}>
-            <div className="form-group">
-              <label className="form-label">Icon</label>
-              <input className="form-input" value={newAcc.icon} maxLength={2}
-                onChange={e => setNewAcc({ ...newAcc, icon: e.target.value })} placeholder="🏦" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Nama Rekening</label>
-              <input className="form-input" value={newAcc.name}
-                onChange={e => setNewAcc({ ...newAcc, name: e.target.value })} placeholder="cth: Mandiri, GoPay" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Saldo Awal (Rp)</label>
-              <input className="form-input" type="number" value={newAcc.balance}
-                onChange={e => setNewAcc({ ...newAcc, balance: e.target.value })} placeholder="0" />
-            </div>
+          <div style={{ padding: "14px", background: "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius)", marginBottom: 12 }}>
+            <div className="form-group"><label className="form-label">Icon</label><input className="form-input" value={newAcc.icon} maxLength={2} onChange={e => setNewAcc({ ...newAcc, icon: e.target.value })} placeholder="🏦" /></div>
+            <div className="form-group"><label className="form-label">Nama Rekening</label><input className="form-input" value={newAcc.name} onChange={e => setNewAcc({ ...newAcc, name: e.target.value })} placeholder="cth: Mandiri, GoPay" /></div>
+            <div className="form-group"><label className="form-label">Saldo Awal (Rp)</label><input className="form-input" type="number" value={newAcc.balance} onChange={e => setNewAcc({ ...newAcc, balance: e.target.value })} placeholder="0" /></div>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn-primary" style={{ marginTop: 0, flex: 1 }} onClick={handleAdd}>Tambah</button>
               <button className="btn-ghost" style={{ marginTop: 0, flex: 1 }} onClick={() => setShowAdd(false)}>Batal</button>
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setShowAdd(true)}
-            style={{
-              width: "100%", padding: "11px", background: "none",
-              border: "1.5px dashed var(--border)", borderRadius: "var(--radius)",
-              color: "var(--accent)", fontSize: 13.5, fontWeight: 700,
-              cursor: "pointer", marginBottom: 12, transition: "all 0.18s"
-            }}
-          >+ Tambah Rekening</button>
+          <button onClick={() => setShowAdd(true)} style={{ width: "100%", padding: "11px", background: "none", border: "1.5px dashed var(--border)", borderRadius: "var(--radius)", color: "var(--accent)", fontSize: 13.5, fontWeight: 700, cursor: "pointer", marginBottom: 12 }}>+ Tambah Rekening</button>
         )}
-
         <button className="btn-primary" onClick={() => onSave(accs)}>Simpan</button>
         <button className="btn-ghost" onClick={onCancel}>Batal</button>
       </div>
@@ -338,14 +239,8 @@ function AssetsPopup({ assets, onSave, onCancel }) {
 
   const handleAdd = () => {
     if (!newItem.name || !newItem.value) return;
-    setItems([...items, {
-      id: Date.now().toString(),
-      name: newItem.name,
-      icon: newItem.icon || "💍",
-      value: parseInt(newItem.value) || 0
-    }]);
-    setNewItem({ name: "", icon: "💍", value: "" });
-    setShowAdd(false);
+    setItems([...items, { id: Date.now().toString(), name: newItem.name, icon: newItem.icon || "💍", value: parseInt(newItem.value) || 0 }]);
+    setNewItem({ name: "", icon: "💍", value: "" }); setShowAdd(false);
   };
 
   return (
@@ -353,64 +248,31 @@ function AssetsPopup({ assets, onSave, onCancel }) {
       <div className="sheet" onClick={e => e.stopPropagation()}>
         <div className="sheet-title">Aset Saya</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
-          {items.length === 0 && (
-            <div style={{ textAlign: "center", color: "var(--text3)", fontSize: 13, padding: "20px 0" }}>
-              Belum ada aset tercatat
-            </div>
-          )}
+          {items.length === 0 && <div style={{ textAlign: "center", color: "var(--text3)", fontSize: 13, padding: "20px 0" }}>Belum ada aset tercatat</div>}
           {items.map(item => (
-            <div key={item.id} style={{
-              display: "flex", alignItems: "center", gap: 12,
-              padding: "12px 14px", background: "var(--bg3)",
-              border: "1.5px solid var(--border)", borderRadius: "var(--radius)"
-            }}>
+            <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius)" }}>
               <span style={{ fontSize: 22 }}>{item.icon}</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>{item.name}</div>
                 <div style={{ fontSize: 12, color: "var(--amber)", fontWeight: 700, marginTop: 2 }}>{fmtLong(item.value)}</div>
               </div>
-              <button
-                onClick={() => setItems(items.filter(i => i.id !== item.id))}
-                style={{ background: "none", border: "none", color: "var(--text3)", fontSize: 18, cursor: "pointer" }}
-              >×</button>
+              <button onClick={() => setItems(items.filter(i => i.id !== item.id))} style={{ background: "none", border: "none", color: "var(--text3)", fontSize: 18, cursor: "pointer" }}>×</button>
             </div>
           ))}
         </div>
-
         {showAdd ? (
           <div style={{ padding: 14, background: "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius)", marginBottom: 12 }}>
-            <div className="form-group">
-              <label className="form-label">Icon</label>
-              <input className="form-input" value={newItem.icon} maxLength={2}
-                onChange={e => setNewItem({ ...newItem, icon: e.target.value })} placeholder="💍" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Nama Aset</label>
-              <input className="form-input" value={newItem.name}
-                onChange={e => setNewItem({ ...newItem, name: e.target.value })} placeholder="cth: Cincin Emas, Gelang" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Estimasi Nilai (Rp)</label>
-              <input className="form-input" type="number" value={newItem.value}
-                onChange={e => setNewItem({ ...newItem, value: e.target.value })} placeholder="5000000" />
-            </div>
+            <div className="form-group"><label className="form-label">Icon</label><input className="form-input" value={newItem.icon} maxLength={2} onChange={e => setNewItem({ ...newItem, icon: e.target.value })} placeholder="💍" /></div>
+            <div className="form-group"><label className="form-label">Nama Aset</label><input className="form-input" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} placeholder="cth: Cincin Emas, Gelang" /></div>
+            <div className="form-group"><label className="form-label">Estimasi Nilai (Rp)</label><input className="form-input" type="number" value={newItem.value} onChange={e => setNewItem({ ...newItem, value: e.target.value })} placeholder="5000000" /></div>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn-primary" style={{ marginTop: 0, flex: 1 }} onClick={handleAdd}>Tambah</button>
               <button className="btn-ghost" style={{ marginTop: 0, flex: 1 }} onClick={() => setShowAdd(false)}>Batal</button>
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setShowAdd(true)}
-            style={{
-              width: "100%", padding: "11px", background: "none",
-              border: "1.5px dashed var(--border)", borderRadius: "var(--radius)",
-              color: "var(--accent)", fontSize: 13.5, fontWeight: 700,
-              cursor: "pointer", marginBottom: 12
-            }}
-          >+ Tambah Aset</button>
+          <button onClick={() => setShowAdd(true)} style={{ width: "100%", padding: "11px", background: "none", border: "1.5px dashed var(--border)", borderRadius: "var(--radius)", color: "var(--accent)", fontSize: 13.5, fontWeight: 700, cursor: "pointer", marginBottom: 12 }}>+ Tambah Aset</button>
         )}
-
         <button className="btn-primary" onClick={() => onSave(items)}>Simpan</button>
         <button className="btn-ghost" onClick={onCancel}>Batal</button>
       </div>
@@ -434,12 +296,9 @@ function LoginPage() {
       else await createUserWithEmailAndPassword(auth, email, password);
     } catch (e) {
       const msgs = {
-        "auth/invalid-email": "Email tidak valid",
-        "auth/wrong-password": "Password salah",
-        "auth/user-not-found": "Akun tidak ditemukan",
-        "auth/email-already-in-use": "Email sudah terdaftar",
-        "auth/weak-password": "Password minimal 6 karakter",
-        "auth/invalid-credential": "Email atau password salah",
+        "auth/invalid-email": "Email tidak valid", "auth/wrong-password": "Password salah",
+        "auth/user-not-found": "Akun tidak ditemukan", "auth/email-already-in-use": "Email sudah terdaftar",
+        "auth/weak-password": "Password minimal 6 karakter", "auth/invalid-credential": "Email atau password salah",
       };
       setError(msgs[e.code] || "Gagal, coba lagi");
     }
@@ -456,22 +315,10 @@ function LoginPage() {
           <button className={`login-tab ${mode === "login" ? "active" : ""}`} onClick={() => { setMode("login"); setError(""); }}>Masuk</button>
           <button className={`login-tab ${mode === "register" ? "active" : ""}`} onClick={() => { setMode("register"); setError(""); }}>Daftar</button>
         </div>
-        <div className="form-group">
-          <label className="form-label">Email</label>
-          <input className="form-input" type="email" placeholder="nama@email.com"
-            value={email} onChange={e => setEmail(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handle()} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input className="form-input" type="password" placeholder="••••••"
-            value={password} onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handle()} />
-        </div>
+        <div className="form-group"><label className="form-label">Email</label><input className="form-input" type="email" placeholder="nama@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handle()} /></div>
+        <div className="form-group"><label className="form-label">Password</label><input className="form-input" type="password" placeholder="••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handle()} /></div>
         {error && <div className="login-error">⚠️ {error}</div>}
-        <button className="btn-primary" onClick={handle} disabled={loading}>
-          {loading ? "Memproses..." : mode === "login" ? "Masuk" : "Buat Akun"}
-        </button>
+        <button className="btn-primary" onClick={handle} disabled={loading}>{loading ? "Memproses..." : mode === "login" ? "Masuk" : "Buat Akun"}</button>
       </div>
     </div>
   );
@@ -490,44 +337,32 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
   const pemasukan = thisMonth.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const pengeluaran = thisMonth.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
 
-  // Piutang aktif (belum dibayar)
   const totalPiutangAktif = piutangs.filter(p => !p.lunas).reduce((s, p) => s + p.sisa, 0);
 
-  const saldoMurni = saldoAwal + pemasukan - pengeluaran;
-  const saldo = includePiutang ? saldoMurni + totalPiutangAktif : saldoMurni;
-
-  // Total aset rekening
+  // ── Saldo Saat Ini = total rekening + aset + (opsional piutang) ──
   const totalRekening = accounts.reduce((s, a) => s + (a.balance || 0), 0);
-  // Total aset benda
   const totalAsetBenda = assets.reduce((s, a) => s + (a.value || 0), 0);
-  const totalNetWorth = totalRekening + totalAsetBenda + (includePiutang ? totalPiutangAktif : 0);
+  const saldo = totalRekening + totalAsetBenda + (includePiutang ? totalPiutangAktif : 0);
 
   const totalTabungan = savings.reduce((s, sv) => s + (sv.current || 0), 0);
-  const mood = getMoodMessage(saldo, pemasukan);
 
   const lastMonthTxns = transactions.filter(t => {
     const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || 0);
     const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear();
   });
-
   const lastMonthExp = lastMonthTxns.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const lastMonthInc = lastMonthTxns.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const diffPctExp = lastMonthExp > 0 ? Math.round(((pengeluaran - lastMonthExp) / lastMonthExp) * 100) : null;
   const diffPctInc = lastMonthInc > 0 ? Math.round(((pemasukan - lastMonthInc) / lastMonthInc) * 100) : null;
-  const diffPctSaldo = (saldoAwal + lastMonthInc - lastMonthExp) > 0
-    ? Math.round(((saldo - (saldoAwal + lastMonthInc - lastMonthExp)) / (saldoAwal + lastMonthInc - lastMonthExp)) * 100)
-    : null;
 
   const chartData = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
     const label = d.toLocaleDateString("id-ID", { month: "short" });
-    const total = transactions
-      .filter(t => {
-        const td = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || 0);
-        return td.getMonth() === d.getMonth() && td.getFullYear() === d.getFullYear() && t.type === "expense";
-      })
-      .reduce((s, t) => s + t.amount, 0);
+    const total = transactions.filter(t => {
+      const td = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || 0);
+      return td.getMonth() === d.getMonth() && td.getFullYear() === d.getFullYear() && t.type === "expense";
+    }).reduce((s, t) => s + t.amount, 0);
     return { label, total };
   });
 
@@ -535,11 +370,9 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
 
   const catData = Object.entries(
     thisMonth.filter(t => t.type === "expense").reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
+      acc[t.category] = (acc[t.category] || 0) + t.amount; return acc;
     }, {})
   ).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 5);
-
   const topCat = catData[0];
 
   const recentTxns = [...transactions].sort((a, b) => {
@@ -553,180 +386,79 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
     if (diffPctExp > 0) insights.push({ icon: "📈", iconClass: "up", label: `Pengeluaran naik ${diffPctExp}%`, sub: "Dibanding bulan lalu" });
     else insights.push({ icon: "📉", iconClass: "star", label: `Pengeluaran turun ${Math.abs(diffPctExp)}%`, sub: "Dibanding bulan lalu" });
   }
-  if (pemasukan > pengeluaran) {
-    insights.push({ icon: "✨", iconClass: "star", label: "Kamu lebih hemat", sub: `Surplus ${fmt(pemasukan - pengeluaran)} bulan ini 😊` });
-  } else if (pengeluaran > pemasukan && pemasukan > 0) {
-    insights.push({ icon: "⚠️", iconClass: "up", label: "Pengeluaran melebihi pemasukan", sub: `Defisit ${fmt(pengeluaran - pemasukan)}` });
-  }
-  if (topCat) {
-    insights.push({ icon: CATEGORY_ICONS[topCat.name] || "📌", iconClass: "star", label: `Terbesar: ${topCat.name}`, sub: fmt(topCat.value) });
-  }
-  if (includePiutang && totalPiutangAktif > 0) {
-    insights.push({ icon: "🤝", iconClass: "star", label: `Piutang aktif: ${fmt(totalPiutangAktif)}`, sub: "Include dalam saldo" });
-  }
+  if (pemasukan > pengeluaran) insights.push({ icon: "✨", iconClass: "star", label: "Kamu lebih hemat", sub: `Surplus ${fmt(pemasukan - pengeluaran)} bulan ini 😊` });
+  else if (pengeluaran > pemasukan && pemasukan > 0) insights.push({ icon: "⚠️", iconClass: "up", label: "Pengeluaran melebihi pemasukan", sub: `Defisit ${fmt(pengeluaran - pemasukan)}` });
+  if (topCat) insights.push({ icon: CATEGORY_ICONS[topCat.name] || "📌", iconClass: "star", label: `Terbesar: ${topCat.name}`, sub: fmt(topCat.value) });
+  if (includePiutang && totalPiutangAktif > 0) insights.push({ icon: "🤝", iconClass: "star", label: `Piutang aktif: ${fmt(totalPiutangAktif)}`, sub: "Include dalam saldo" });
   const shownInsights = insights.slice(0, 2);
 
   return (
     <div>
-      {/* ── Top Row: Hero + Insight ── */}
+      {/* ── Hero + Insight ── */}
       <div className="dashboard-top-row">
-        {/* Hero Card */}
-        <div className="hero-card" onClick={onSetSaldoAwal}>
+        <div className="hero-card">
           <div className="hero-wallet-illustration">💳</div>
           <div className="hero-top">
-            <div className="hero-label">
-              <div className="hero-label-icon">ℹ️</div>
-              Saldo saat ini
+            <div className="hero-label"><div className="hero-label-icon">ℹ️</div>Saldo saat ini</div>
+            <div className={`hero-amount ${saldo < 0 ? "negative" : ""}`}>{fmtLong(saldo)}</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginBottom: 4, fontWeight: 500 }}>
+              rekening {fmt(totalRekening)} · aset {fmt(totalAsetBenda)}{includePiutang && totalPiutangAktif > 0 ? ` · piutang ${fmt(totalPiutangAktif)}` : ""}
             </div>
-            <div className={`hero-amount ${saldo < 0 ? "negative" : ""}`}>
-              {fmtLong(saldo)}
-            </div>
-            {includePiutang && totalPiutangAktif > 0 && (
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginBottom: 6, fontWeight: 500 }}>
-                termasuk piutang {fmt(totalPiutangAktif)}
-              </div>
-            )}
-            {diffPctSaldo !== null && (
-              <div className="hero-badge">
-                {diffPctSaldo >= 0 ? "↑" : "↓"} {Math.abs(diffPctSaldo)}% dari bulan lalu
-              </div>
-            )}
           </div>
-
-          {/* Toggle Include Piutang */}
           <div style={{ position: "relative", zIndex: 1, marginTop: 12 }}>
-            <div
-              onClick={e => { e.stopPropagation(); onTogglePiutang(); }}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 8,
-                background: "rgba(255,255,255,0.12)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                borderRadius: 99, padding: "6px 12px",
-                cursor: "pointer", transition: "background 0.18s"
-              }}
-            >
-              <div style={{
-                width: 30, height: 17,
-                background: includePiutang ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.18)",
-                borderRadius: 99, position: "relative", transition: "background 0.2s",
-                flexShrink: 0,
-              }}>
-                <div style={{
-                  position: "absolute", top: 2,
-                  left: includePiutang ? 15 : 2,
-                  width: 13, height: 13,
-                  background: "#fff", borderRadius: "50%",
-                  transition: "left 0.2s",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.25)"
-                }} />
+            <div onClick={e => { e.stopPropagation(); onTogglePiutang(); }} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 99, padding: "6px 12px", cursor: "pointer" }}>
+              <div style={{ width: 30, height: 17, background: includePiutang ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.18)", borderRadius: 99, position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                <div style={{ position: "absolute", top: 2, left: includePiutang ? 15 : 2, width: 13, height: 13, background: "#fff", borderRadius: "50%", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>
-                {includePiutang ? "Saldo + Piutang" : "Saldo Murni"}
-              </span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>{includePiutang ? "Saldo + Piutang" : "Saldo Murni"}</span>
             </div>
           </div>
-
           <div className="hero-bottom">
-            <button
-              className="hero-ringkasan-btn"
-              onClick={e => { e.stopPropagation(); onSetSaldoAwal(); }}
-            >
-              Set Saldo Awal →
-            </button>
-            <div className="hero-date">
-              {now.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
-            </div>
+            <button className="hero-ringkasan-btn" onClick={e => { e.stopPropagation(); onSetSaldoAwal(); }}>Set Saldo Awal →</button>
+            <div className="hero-date">{now.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</div>
           </div>
         </div>
 
-        {/* Insight Card */}
         <div className="insight-card">
-          <div className="insight-header">
-            <span className="insight-title">Insight untuk kamu ✦</span>
-            <span className="insight-plus">+</span>
-          </div>
+          <div className="insight-header"><span className="insight-title">Insight untuk kamu ✦</span><span className="insight-plus">+</span></div>
           <div className="insight-items">
             {shownInsights.length === 0 ? (
-              <div style={{ color: "var(--text3)", fontSize: 13, fontWeight: 500, padding: "8px 0" }}>
-                Catat transaksi untuk melihat insight 👀
+              <div style={{ color: "var(--text3)", fontSize: 13, fontWeight: 500, padding: "8px 0" }}>Catat transaksi untuk melihat insight 👀</div>
+            ) : shownInsights.map((ins, i) => (
+              <div key={i} className="insight-item">
+                <div className={`insight-icon ${ins.iconClass}`}>{ins.icon}</div>
+                <div className="insight-text"><div className="insight-label">{ins.label}</div><div className="insight-sub">{ins.sub}</div></div>
               </div>
-            ) : (
-              shownInsights.map((ins, i) => (
-                <div key={i} className="insight-item">
-                  <div className={`insight-icon ${ins.iconClass}`}>{ins.icon}</div>
-                  <div className="insight-text">
-                    <div className="insight-label">{ins.label}</div>
-                    <div className="insight-sub">{ins.sub}</div>
-                  </div>
-                </div>
-              ))
-            )}
+            ))}
           </div>
-          <button className="insight-see-all">
-            <span>Lihat semua insight</span>
-            <span>›</span>
-          </button>
+          <button className="insight-see-all"><span>Lihat semua insight</span><span>›</span></button>
         </div>
       </div>
 
-      {/* ── Rekening & Aset Row ── */}
+      {/* ── Rekening & Aset (tanpa Total Kekayaan) ── */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px" }}>Rekening & Aset</div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={onManageAccounts}
-              style={{
-                background: "none", border: "1.5px solid var(--border)",
-                borderRadius: "var(--radius-sm)", color: "var(--accent)",
-                fontSize: 12, fontWeight: 700, padding: "5px 12px", cursor: "pointer"
-              }}
-            >⚙️ Rekening</button>
-            <button
-              onClick={onManageAssets}
-              style={{
-                background: "none", border: "1.5px solid var(--border)",
-                borderRadius: "var(--radius-sm)", color: "var(--amber)",
-                fontSize: 12, fontWeight: 700, padding: "5px 12px", cursor: "pointer"
-              }}
-            >💍 Aset</button>
+            <button onClick={onManageAccounts} style={{ background: "none", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", color: "var(--accent)", fontSize: 12, fontWeight: 700, padding: "5px 12px", cursor: "pointer" }}>⚙️ Rekening</button>
+            <button onClick={onManageAssets} style={{ background: "none", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", color: "var(--amber)", fontSize: 12, fontWeight: 700, padding: "5px 12px", cursor: "pointer" }}>💍 Aset</button>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
           {accounts.map(acc => (
-            <div key={acc.id} style={{
-              background: "var(--bg2)", border: "1.5px solid var(--border)",
-              borderRadius: "var(--radius-lg)", padding: "14px 16px",
-              minWidth: 130, flexShrink: 0,
-              boxShadow: "var(--card-shadow)"
-            }}>
+            <div key={acc.id} style={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "14px 16px", minWidth: 130, flexShrink: 0, boxShadow: "var(--card-shadow)" }}>
               <div style={{ fontSize: 20, marginBottom: 8 }}>{acc.icon}</div>
               <div style={{ fontSize: 11.5, color: "var(--text3)", fontWeight: 600, marginBottom: 4 }}>{acc.name}</div>
               <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.4px" }}>{fmt(acc.balance)}</div>
             </div>
           ))}
           {assets.map(asset => (
-            <div key={asset.id} style={{
-              background: "var(--bg2)", border: "1.5px solid var(--border)",
-              borderRadius: "var(--radius-lg)", padding: "14px 16px",
-              minWidth: 130, flexShrink: 0,
-              boxShadow: "var(--card-shadow)"
-            }}>
+            <div key={asset.id} style={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "14px 16px", minWidth: 130, flexShrink: 0, boxShadow: "var(--card-shadow)" }}>
               <div style={{ fontSize: 20, marginBottom: 8 }}>{asset.icon}</div>
               <div style={{ fontSize: 11.5, color: "var(--text3)", fontWeight: 600, marginBottom: 4 }}>{asset.name}</div>
               <div style={{ fontSize: 14, fontWeight: 800, color: "var(--amber)", letterSpacing: "-0.4px" }}>{fmt(asset.value)}</div>
             </div>
           ))}
-          {/* Net Worth Card */}
-          <div style={{
-            background: "var(--hero-gradient)", borderRadius: "var(--radius-lg)",
-            padding: "14px 16px", minWidth: 140, flexShrink: 0,
-            boxShadow: "0 4px 14px var(--hero-glow)"
-          }}>
-            <div style={{ fontSize: 20, marginBottom: 8 }}>📊</div>
-            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.7)", fontWeight: 600, marginBottom: 4 }}>Total Kekayaan</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px" }}>{fmt(totalNetWorth)}</div>
-          </div>
         </div>
       </div>
 
@@ -736,43 +468,32 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
           <div className="metric-icon-wrap green">↓</div>
           <div className="metric-label">Pemasukan</div>
           <div className="metric-value green">{fmt(pemasukan)}</div>
-          <div className={`metric-trend ${diffPctInc !== null ? (diffPctInc >= 0 ? "positive" : "negative") : ""}`}>
-            {diffPctInc !== null ? `${diffPctInc >= 0 ? "↑" : "↓"} ${Math.abs(diffPctInc)}% dari bulan lalu` : "bulan ini"}
-          </div>
+          <div className={`metric-trend ${diffPctInc !== null ? (diffPctInc >= 0 ? "positive" : "negative") : ""}`}>{diffPctInc !== null ? `${diffPctInc >= 0 ? "↑" : "↓"} ${Math.abs(diffPctInc)}% dari bulan lalu` : "bulan ini"}</div>
         </div>
         <div className="metric-card">
           <div className="metric-icon-wrap red">↑</div>
           <div className="metric-label">Pengeluaran</div>
           <div className="metric-value red">{fmt(pengeluaran)}</div>
-          <div className={`metric-trend ${diffPctExp !== null ? (diffPctExp > 0 ? "negative" : "positive") : ""}`}>
-            {diffPctExp !== null ? `${diffPctExp > 0 ? "↑" : "↓"} ${Math.abs(diffPctExp)}% dari bulan lalu` : "bulan ini"}
-          </div>
+          <div className={`metric-trend ${diffPctExp !== null ? (diffPctExp > 0 ? "negative" : "positive") : ""}`}>{diffPctExp !== null ? `${diffPctExp > 0 ? "↑" : "↓"} ${Math.abs(diffPctExp)}% dari bulan lalu` : "bulan ini"}</div>
         </div>
         <div className="metric-card">
           <div className="metric-icon-wrap blue">💳</div>
           <div className="metric-label">Saldo Saat Ini</div>
           <div className="metric-value blue">{fmt(saldo)}</div>
-          <div className={`metric-trend ${diffPctSaldo !== null ? (diffPctSaldo >= 0 ? "positive" : "negative") : ""}`}>
-            {diffPctSaldo !== null ? `${diffPctSaldo >= 0 ? "↑" : "↓"} ${Math.abs(diffPctSaldo)}% dari bulan lalu` : "bulan ini"}
-          </div>
+          <div className="metric-trend">rekening + aset{includePiutang ? " + piutang" : ""}</div>
         </div>
         <div className="metric-card">
           <div className="metric-icon-wrap purple">🏦</div>
           <div className="metric-label">Total Tabungan</div>
           <div className="metric-value purple">{fmt(totalTabungan)}</div>
-          <div className="metric-trend">
-            {savings.length > 0 ? `${savings.length} target aktif` : "belum ada target"}
-          </div>
+          <div className="metric-trend">{savings.length > 0 ? `${savings.length} target aktif` : "belum ada target"}</div>
         </div>
       </div>
 
-      {/* ── Chart + Recent Transactions ── */}
+      {/* ── Chart + Recent ── */}
       <div className="chart-txn-row">
         <div className="card" style={{ marginBottom: 0 }}>
-          <div className="card-header-row">
-            <div className="card-title">Tren Pengeluaran</div>
-            <div className="card-dropdown">6 Bulan Terakhir ▾</div>
-          </div>
+          <div className="card-header-row"><div className="card-title">Tren Pengeluaran</div><div className="card-dropdown">6 Bulan Terakhir ▾</div></div>
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <defs>
@@ -782,58 +503,29 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
                 </linearGradient>
               </defs>
               <XAxis dataKey="label" tick={{ fill: "var(--text3)", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "var(--text3)", fontSize: 10 }} axisLine={false} tickLine={false}
-                tickFormatter={v => v >= 1000000 ? `${v / 1000000}jt` : v >= 1000 ? `${v / 1000}rb` : v} />
-              <Tooltip
-                formatter={v => [fmt(v), "Pengeluaran"]}
-                labelStyle={{ color: "var(--text)", fontWeight: 700, fontSize: 12 }}
-                contentStyle={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 600 }}
-              />
-              <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2.5}
-                fill="url(#gradFill)" dot={false} activeDot={{ r: 5, fill: "#6366f1", strokeWidth: 0 }} />
+              <YAxis tick={{ fill: "var(--text3)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000000 ? `${v / 1000000}jt` : v >= 1000 ? `${v / 1000}rb` : v} />
+              <Tooltip formatter={v => [fmt(v), "Pengeluaran"]} labelStyle={{ color: "var(--text)", fontWeight: 700, fontSize: 12 }} contentStyle={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 600 }} />
+              <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2.5} fill="url(#gradFill)" dot={false} activeDot={{ r: 5, fill: "#6366f1", strokeWidth: 0 }} />
             </AreaChart>
           </ResponsiveContainer>
           {highestMonth && highestMonth.total > 0 && (
             <div className="chart-footer-stat">
-              <div className="chart-footer-label">
-                <div className="chart-footer-icon">↑</div>
-                <div>
-                  <div className="chart-footer-text">Pengeluaran tertinggi</div>
-                  <div className="chart-footer-sub">{highestMonth.label}</div>
-                </div>
-              </div>
+              <div className="chart-footer-label"><div className="chart-footer-icon">↑</div><div><div className="chart-footer-text">Pengeluaran tertinggi</div><div className="chart-footer-sub">{highestMonth.label}</div></div></div>
               <div className="chart-footer-value">{fmt(highestMonth.total)}</div>
             </div>
           )}
         </div>
-
         <div className="card" style={{ marginBottom: 0 }}>
-          <div className="card-header-row">
-            <div className="card-title">Transaksi Terbaru</div>
-            <button className="card-action-link">Lihat semua</button>
-          </div>
+          <div className="card-header-row"><div className="card-title">Transaksi Terbaru</div><button className="card-action-link">Lihat semua</button></div>
           {recentTxns.length === 0 ? (
-            <div className="empty-state">
-              <div className="emoji">👀</div>
-              <p>Belum ada transaksi</p>
-              <p className="empty-sub">Yuk mulai catat keuanganmu!</p>
+            <div className="empty-state"><div className="emoji">👀</div><p>Belum ada transaksi</p><p className="empty-sub">Yuk mulai catat keuanganmu!</p></div>
+          ) : recentTxns.map(t => (
+            <div key={t.id} className="txn-item">
+              <div className="txn-icon" style={{ background: (CATEGORY_COLORS[t.category] || "#94a3b8") + "20" }}>{CATEGORY_ICONS[t.category] || "📌"}</div>
+              <div className="txn-info"><div className="txn-name">{t.description}</div><div className="txn-meta">{fmtDate(t.createdAt)} · {t.method || "—"}</div></div>
+              <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>{t.type === "income" ? "+" : "−"}{fmt(t.amount)}</div>
             </div>
-          ) : (
-            recentTxns.map(t => (
-              <div key={t.id} className="txn-item">
-                <div className="txn-icon" style={{ background: (CATEGORY_COLORS[t.category] || "#94a3b8") + "20" }}>
-                  {CATEGORY_ICONS[t.category] || "📌"}
-                </div>
-                <div className="txn-info">
-                  <div className="txn-name">{t.description}</div>
-                  <div className="txn-meta">{fmtDate(t.createdAt)} · {t.method || "—"}</div>
-                </div>
-                <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>
-                  {t.type === "income" ? "+" : "−"}{fmt(t.amount)}
-                </div>
-              </div>
-            ))
-          )}
+          ))}
           <button className="tambah-txn-btn" onClick={onAddTxn}>+ Tambah Transaksi</button>
         </div>
       </div>
@@ -843,10 +535,31 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
 
 // ─── Transactions Page ────────────────────────────────────────────────────────
 function Transactions({ transactions, onDelete, onEdit }) {
+  const now = new Date();
+  const [viewDate, setViewDate] = useState({ year: now.getFullYear(), month: now.getMonth() });
   const [filter, setFilter] = useState("semua");
   const cats = ["semua", "Makanan & Minuman", "Transportasi", "Tagihan & Utilitas", "Belanja", "Hiburan", "Pemasukan", "Lainnya"];
 
-  const sorted = [...transactions].sort((a, b) => {
+  const prevMonth = () => setViewDate(prev =>
+    prev.month === 0 ? { year: prev.year - 1, month: 11 } : { year: prev.year, month: prev.month - 1 }
+  );
+  const nextMonth = () => setViewDate(prev =>
+    prev.month === 11 ? { year: prev.year + 1, month: 0 } : { year: prev.year, month: prev.month + 1 }
+  );
+
+  const isCurrentMonth = viewDate.year === now.getFullYear() && viewDate.month === now.getMonth();
+  const bulanLabel = new Date(viewDate.year, viewDate.month, 1).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+
+  const monthTxns = transactions.filter(t => {
+    const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || 0);
+    return d.getMonth() === viewDate.month && d.getFullYear() === viewDate.year;
+  });
+
+  const pemasukanBulan = monthTxns.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const pengeluaranBulan = monthTxns.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const selisihBulan = pemasukanBulan - pengeluaranBulan;
+
+  const sorted = [...monthTxns].sort((a, b) => {
     const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
     const db2 = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
     return db2 - da;
@@ -854,42 +567,67 @@ function Transactions({ transactions, onDelete, onEdit }) {
 
   return (
     <div>
-      <div className="tabs">
-        {cats.map(c => (
-          <button key={c} className={`tab-btn ${filter === c ? "active" : ""}`} onClick={() => setFilter(c)}>
-            {c === "semua" ? "Semua" : c}
-          </button>
-        ))}
+      {/* ── Rekap Bulanan ── */}
+      <div style={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "16px 18px", marginBottom: 16, boxShadow: "var(--card-shadow)" }}>
+        {/* Navigasi bulan */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <button onClick={prevMonth} style={{ background: "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "6px 14px", cursor: "pointer", color: "var(--text)", fontSize: 16, fontWeight: 700, lineHeight: 1 }}>‹</button>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px" }}>{bulanLabel}</div>
+            {isCurrentMonth && <div style={{ fontSize: 10, color: "var(--accent)", fontWeight: 700, marginTop: 2, textTransform: "uppercase", letterSpacing: "0.5px" }}>Bulan Berjalan</div>}
+          </div>
+          <button onClick={nextMonth} disabled={isCurrentMonth} style={{ background: isCurrentMonth ? "transparent" : "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "6px 14px", cursor: isCurrentMonth ? "default" : "pointer", color: isCurrentMonth ? "var(--text3)" : "var(--text)", fontSize: 16, fontWeight: 700, lineHeight: 1, opacity: isCurrentMonth ? 0.4 : 1 }}>›</button>
+        </div>
+
+        {/* 3 kolom ringkasan */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div style={{ background: "rgba(34,197,94,0.08)", border: "1.5px solid rgba(34,197,94,0.2)", borderRadius: "var(--radius)", padding: "10px 12px", textAlign: "center" }}>
+            <div style={{ fontSize: 10, color: "var(--green)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: 4 }}>Pemasukan</div>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--green)", letterSpacing: "-0.4px" }}>{fmt(pemasukanBulan)}</div>
+          </div>
+          <div style={{ background: "rgba(239,68,68,0.08)", border: "1.5px solid rgba(239,68,68,0.2)", borderRadius: "var(--radius)", padding: "10px 12px", textAlign: "center" }}>
+            <div style={{ fontSize: 10, color: "var(--red)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: 4 }}>Pengeluaran</div>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--red)", letterSpacing: "-0.4px" }}>{fmt(pengeluaranBulan)}</div>
+          </div>
+          <div style={{ background: selisihBulan >= 0 ? "rgba(99,102,241,0.08)" : "rgba(239,68,68,0.08)", border: `1.5px solid ${selisihBulan >= 0 ? "rgba(99,102,241,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: "var(--radius)", padding: "10px 12px", textAlign: "center" }}>
+            <div style={{ fontSize: 10, color: selisihBulan >= 0 ? "var(--accent)" : "var(--red)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: 4 }}>{selisihBulan >= 0 ? "Surplus" : "Defisit"}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: selisihBulan >= 0 ? "var(--accent)" : "var(--red)", letterSpacing: "-0.4px" }}>{fmt(Math.abs(selisihBulan))}</div>
+          </div>
+        </div>
+        {monthTxns.length > 0 && (
+          <div style={{ fontSize: 11.5, color: "var(--text3)", fontWeight: 500, marginTop: 10, textAlign: "center" }}>{monthTxns.length} transaksi di bulan ini</div>
+        )}
       </div>
+
+      {/* ── Filter ── */}
+      <div className="tabs">
+        {cats.map(c => <button key={c} className={`tab-btn ${filter === c ? "active" : ""}`} onClick={() => setFilter(c)}>{c === "semua" ? "Semua" : c}</button>)}
+      </div>
+
+      {/* ── List ── */}
       <div className="card">
         {sorted.length === 0 ? (
           <div className="empty-state">
             <div className="emoji">🔍</div>
             <p>Tidak ada transaksi</p>
-            <p className="empty-sub">Coba pilih kategori lain</p>
+            <p className="empty-sub">{filter !== "semua" ? "Coba pilih kategori lain" : `Belum ada transaksi di ${bulanLabel}`}</p>
           </div>
-        ) : (
-          sorted.map(t => (
-            <div key={t.id} className="txn-item">
-              <div className="txn-icon" style={{ background: (CATEGORY_COLORS[t.category] || "#94a3b8") + "20" }}>
-                {CATEGORY_ICONS[t.category] || "📌"}
-              </div>
-              <div className="txn-info">
-                <div className="txn-name">{t.description}</div>
-                <div className="txn-meta">{t.category} · {fmtDate(t.createdAt)} · {t.method || "—"}{t.accountName ? ` · ${t.accountName}` : ""}</div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>
-                  {t.type === "income" ? "+" : "−"}{fmt(t.amount)}
-                </div>
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button className="action-link edit" onClick={() => onEdit(t)}>edit</button>
-                  <button className="action-link delete" onClick={() => onDelete(t.id)}>hapus</button>
-                </div>
+        ) : sorted.map(t => (
+          <div key={t.id} className="txn-item">
+            <div className="txn-icon" style={{ background: (CATEGORY_COLORS[t.category] || "#94a3b8") + "20" }}>{CATEGORY_ICONS[t.category] || "📌"}</div>
+            <div className="txn-info">
+              <div className="txn-name">{t.description}</div>
+              <div className="txn-meta">{t.category} · {fmtDate(t.createdAt)} · {t.method || "—"}{t.accountName ? ` · ${t.accountName}` : ""}</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+              <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>{t.type === "income" ? "+" : "−"}{fmt(t.amount)}</div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button className="action-link edit" onClick={() => onEdit(t)}>edit</button>
+                <button className="action-link delete" onClick={() => onDelete(t.id)}>hapus</button>
               </div>
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -898,6 +636,7 @@ function Transactions({ transactions, onDelete, onEdit }) {
 // ─── Budget Page ──────────────────────────────────────────────────────────────
 function Budget({ transactions, budgets, setBudgets, onOverspend }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [editingBudget, setEditingBudget] = useState(null);
   const [form, setForm] = useState({ category: "Makanan & Minuman", limit: "" });
 
   const now = new Date();
@@ -912,13 +651,20 @@ function Budget({ transactions, budgets, setBudgets, onOverspend }) {
     if (!form.limit) return;
     const existing = budgets.findIndex(b => b.category === form.category);
     if (existing >= 0) {
-      const updated = [...budgets];
-      updated[existing] = { ...updated[existing], limit: parseInt(form.limit) };
-      setBudgets(updated);
-    } else {
-      setBudgets([...budgets, { category: form.category, limit: parseInt(form.limit) }]);
-    }
-    setShowAdd(false);
+      const updated = [...budgets]; updated[existing] = { ...updated[existing], limit: parseInt(form.limit) }; setBudgets(updated);
+    } else setBudgets([...budgets, { category: form.category, limit: parseInt(form.limit) }]);
+    setShowAdd(false); setForm({ category: "Makanan & Minuman", limit: "" });
+  };
+
+  const handleEditSave = () => {
+    if (!editingBudget || !editingBudget.limit) return;
+    setBudgets(budgets.map(b => b.category === editingBudget.category ? { ...b, limit: parseInt(editingBudget.limit) } : b));
+    setEditingBudget(null);
+  };
+
+  const handleDelete = (category) => {
+    if (!window.confirm(`Hapus budget ${category}?`)) return;
+    setBudgets(budgets.filter(b => b.category !== category));
   };
 
   return (
@@ -928,6 +674,9 @@ function Budget({ transactions, budgets, setBudgets, onOverspend }) {
         <button className="section-action" onClick={() => setShowAdd(true)}>+ Tambah</button>
       </div>
       <div className="card">
+        {budgets.length === 0 && (
+          <div className="empty-state"><div className="emoji">📊</div><p>Belum ada budget</p><p className="empty-sub">Tambah budget untuk memantau pengeluaran</p></div>
+        )}
         {budgets.map(b => {
           const spent = getSpent(b.category);
           const pct = Math.min(100, Math.round((spent / b.limit) * 100));
@@ -940,41 +689,54 @@ function Budget({ transactions, budgets, setBudgets, onOverspend }) {
                   <span>{CATEGORY_ICONS[b.category]}</span>
                   <span className="budget-name">{b.category}</span>
                 </div>
-                <span className="budget-pct" style={{ color: over ? "var(--red)" : pct > 80 ? "var(--amber)" : "var(--text3)" }}>
-                  {fmt(spent)} / {fmt(b.limit)}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="budget-pct" style={{ color: over ? "var(--red)" : pct > 80 ? "var(--amber)" : "var(--text3)" }}>
+                    {fmt(spent)} / {fmt(b.limit)}
+                  </span>
+                  <button onClick={() => setEditingBudget({ ...b })} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Edit">✏️</button>
+                  <button onClick={() => handleDelete(b.category)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Hapus">🗑️</button>
+                </div>
               </div>
               <div className="progress-wrap">
-                <div className="progress-fill" style={{
-                  width: `${pct}%`,
-                  background: over ? "var(--red)" : pct > 80 ? "var(--amber)" : "var(--green)"
-                }} />
+                <div className="progress-fill" style={{ width: `${pct}%`, background: over ? "var(--red)" : pct > 80 ? "var(--amber)" : "var(--green)" }} />
               </div>
               {over && <div className="over-msg">Over {fmt(spent - b.limit)}! 💸</div>}
             </div>
           );
         })}
       </div>
+
       {showAdd && (
         <div className="overlay" onClick={() => setShowAdd(false)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-title">Set Budget</div>
-            <div className="form-group">
-              <label className="form-label">Kategori</label>
+            <div className="form-group"><label className="form-label">Kategori</label>
               <select className="form-select" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                {Object.keys(CATEGORY_ICONS).filter(c => !["Pemasukan", "Hutang", "Piutang"].includes(c)).map(c =>
-                  <option key={c} value={c}>{c}</option>
-                )}
+                {Object.keys(CATEGORY_ICONS).filter(c => !["Pemasukan", "Hutang", "Piutang"].includes(c)).map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label className="form-label">Limit (Rp)</label>
-              <input className="form-input" type="number" placeholder="500000" value={form.limit}
-                onChange={e => setForm({ ...form, limit: e.target.value })}
-                onKeyDown={e => e.key === "Enter" && handleSave()} />
+            <div className="form-group"><label className="form-label">Limit (Rp)</label>
+              <input className="form-input" type="number" placeholder="500000" value={form.limit} onChange={e => setForm({ ...form, limit: e.target.value })} onKeyDown={e => e.key === "Enter" && handleSave()} />
             </div>
             <button className="btn-primary" onClick={handleSave}>Simpan</button>
             <button className="btn-ghost" onClick={() => setShowAdd(false)}>Batal</button>
+          </div>
+        </div>
+      )}
+
+      {editingBudget && (
+        <div className="overlay" onClick={() => setEditingBudget(null)}>
+          <div className="sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-title">Edit Budget</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "10px 14px", background: "var(--bg3)", borderRadius: "var(--radius)", border: "1.5px solid var(--border)" }}>
+              <span style={{ fontSize: 20 }}>{CATEGORY_ICONS[editingBudget.category]}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{editingBudget.category}</span>
+            </div>
+            <div className="form-group"><label className="form-label">Limit Baru (Rp)</label>
+              <input className="form-input" type="number" value={editingBudget.limit} onChange={e => setEditingBudget({ ...editingBudget, limit: e.target.value })} onKeyDown={e => e.key === "Enter" && handleEditSave()} autoFocus />
+            </div>
+            <button className="btn-primary" onClick={handleEditSave}>Simpan</button>
+            <button className="btn-ghost" onClick={() => setEditingBudget(null)}>Batal</button>
           </div>
         </div>
       )}
@@ -986,27 +748,37 @@ function Budget({ transactions, budgets, setBudgets, onOverspend }) {
 function Savings({ savings, setSavings }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showDeposit, setShowDeposit] = useState(null);
+  const [editingSaving, setEditingSaving] = useState(null);
   const [form, setForm] = useState({ name: "", icon: "🎯", target: "", current: "", deadline: "" });
+  const [editForm, setEditForm] = useState({ name: "", icon: "", target: "", deadline: "" });
   const [depositAmt, setDepositAmt] = useState("");
 
   const handleAdd = () => {
     if (!form.name || !form.target) return;
-    setSavings([...savings, {
-      id: Date.now().toString(),
-      name: form.name, icon: form.icon,
-      target: parseInt(form.target),
-      current: parseInt(form.current || 0),
-      deadline: form.deadline
-    }]);
-    setShowAdd(false);
-    setForm({ name: "", icon: "🎯", target: "", current: "", deadline: "" });
+    setSavings([...savings, { id: Date.now().toString(), name: form.name, icon: form.icon, target: parseInt(form.target), current: parseInt(form.current || 0), deadline: form.deadline }]);
+    setShowAdd(false); setForm({ name: "", icon: "🎯", target: "", current: "", deadline: "" });
   };
 
   const handleDeposit = (sv) => {
-    const amt = parseInt(depositAmt);
-    if (!amt) return;
+    const amt = parseInt(depositAmt); if (!amt) return;
     setSavings(savings.map(s => s.id === sv.id ? { ...s, current: (s.current || 0) + amt } : s));
     setShowDeposit(null); setDepositAmt("");
+  };
+
+  const handleEditOpen = (sv) => {
+    setEditForm({ name: sv.name, icon: sv.icon, target: sv.target, deadline: sv.deadline || "" });
+    setEditingSaving(sv);
+  };
+
+  const handleEditSave = () => {
+    if (!editForm.name || !editForm.target) return;
+    setSavings(savings.map(s => s.id === editingSaving.id ? { ...s, name: editForm.name, icon: editForm.icon, target: parseInt(editForm.target), deadline: editForm.deadline } : s));
+    setEditingSaving(null);
+  };
+
+  const handleDelete = (id) => {
+    if (!window.confirm("Hapus target tabungan ini?")) return;
+    setSavings(savings.filter(s => s.id !== id));
   };
 
   return (
@@ -1017,11 +789,7 @@ function Savings({ savings, setSavings }) {
       </div>
       <div className="card">
         {savings.length === 0 ? (
-          <div className="empty-state">
-            <div className="emoji">🚀</div>
-            <p>Belum ada target tabungan</p>
-            <p className="empty-sub">Mulai set tujuan finansialmu!</p>
-          </div>
+          <div className="empty-state"><div className="emoji">🚀</div><p>Belum ada target tabungan</p><p className="empty-sub">Mulai set tujuan finansialmu!</p></div>
         ) : savings.map(sv => {
           const pct = Math.min(100, Math.round(((sv.current || 0) / sv.target) * 100));
           const weekly = sv.deadline ? getWeeklySavingsTarget(sv.target, sv.current || 0, sv.deadline) : null;
@@ -1029,7 +797,13 @@ function Savings({ savings, setSavings }) {
             <div key={sv.id} className="saving-item">
               <div className="saving-icon">{sv.icon}</div>
               <div className="saving-info">
-                <div className="saving-name">{sv.name}</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                  <div className="saving-name">{sv.name}</div>
+                  <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                    <button onClick={() => handleEditOpen(sv)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Edit">✏️</button>
+                    <button onClick={() => handleDelete(sv.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Hapus">🗑️</button>
+                  </div>
+                </div>
                 <div className="saving-meta">
                   {fmt(sv.current || 0)} / {fmt(sv.target)}
                   {weekly && <span style={{ marginLeft: 6, color: "var(--accent)" }}>· {fmt(weekly.weeklyTarget)}/minggu</span>}
@@ -1038,17 +812,14 @@ function Savings({ savings, setSavings }) {
                   <div className="progress-fill" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--green)" : "var(--accent)" }} />
                 </div>
                 {pct >= 100 && <div style={{ fontSize: 11.5, color: "var(--green)", marginTop: 4, fontWeight: 700 }}>🎉 Target tercapai!</div>}
-                {weekly && pct < 100 && (
-                  <div style={{ fontSize: 11.5, color: "var(--text3)", marginTop: 4, fontWeight: 500 }}>
-                    {weekly.weeksLeft} minggu lagi · sisa {fmt(weekly.remaining)}
-                  </div>
-                )}
+                {weekly && pct < 100 && <div style={{ fontSize: 11.5, color: "var(--text3)", marginTop: 4, fontWeight: 500 }}>{weekly.weeksLeft} minggu lagi · sisa {fmt(weekly.remaining)}</div>}
               </div>
               <button className="nabung-btn" onClick={() => setShowDeposit(sv)}>+ Nabung</button>
             </div>
           );
         })}
       </div>
+
       {showAdd && (
         <div className="overlay" onClick={() => setShowAdd(false)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
@@ -1063,13 +834,28 @@ function Savings({ savings, setSavings }) {
           </div>
         </div>
       )}
+
+      {editingSaving && (
+        <div className="overlay" onClick={() => setEditingSaving(null)}>
+          <div className="sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-title">Edit Target Tabungan</div>
+            <div className="form-group"><label className="form-label">Icon</label><input className="form-input" value={editForm.icon} maxLength={2} onChange={e => setEditForm({ ...editForm, icon: e.target.value })} /></div>
+            <div className="form-group"><label className="form-label">Nama</label><input className="form-input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} autoFocus /></div>
+            <div className="form-group"><label className="form-label">Target (Rp)</label><input className="form-input" type="number" value={editForm.target} onChange={e => setEditForm({ ...editForm, target: e.target.value })} /></div>
+            <div className="form-group"><label className="form-label">Deadline</label><input className="form-input" type="date" value={editForm.deadline} onChange={e => setEditForm({ ...editForm, deadline: e.target.value })} /></div>
+            <button className="btn-primary" onClick={handleEditSave}>Simpan</button>
+            <button className="btn-ghost" onClick={() => setEditingSaving(null)}>Batal</button>
+          </div>
+        </div>
+      )}
+
       {showDeposit && (
         <div className="overlay" onClick={() => setShowDeposit(null)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-title">{showDeposit.icon} Setor ke {showDeposit.name}</div>
             <div className="form-group"><label className="form-label">Jumlah (Rp)</label>
-              <input className="form-input" type="number" value={depositAmt} onChange={e => setDepositAmt(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleDeposit(showDeposit)} placeholder="100000" autoFocus /></div>
+              <input className="form-input" type="number" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} onKeyDown={e => e.key === "Enter" && handleDeposit(showDeposit)} placeholder="100000" autoFocus />
+            </div>
             <button className="btn-primary" onClick={() => handleDeposit(showDeposit)}>Simpan</button>
             <button className="btn-ghost" onClick={() => setShowDeposit(null)}>Batal</button>
           </div>
@@ -1083,37 +869,44 @@ function Savings({ savings, setSavings }) {
 function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showBayar, setShowBayar] = useState(null);
+  const [editingPiutang, setEditingPiutang] = useState(null);
   const [form, setForm] = useState({ name: "", amount: "", note: "", date: "" });
+  const [editForm, setEditForm] = useState({ name: "", amount: "", note: "", date: "" });
   const [bayarAmt, setBayarAmt] = useState("");
 
   const handleAdd = () => {
     if (!form.name || !form.amount) return;
-    const newPiutang = {
-      id: Date.now().toString(),
-      name: form.name, total: parseInt(form.amount),
-      sisa: parseInt(form.amount), note: form.note,
-      date: form.date || new Date().toISOString().split("T")[0],
-      history: []
-    };
-    const updated = [...piutangs, newPiutang];
-    setPiutangs(updated);
-    onPiutangChange(updated);
-    setShowAdd(false);
-    setForm({ name: "", amount: "", note: "", date: "" });
+    const updated = [...piutangs, { id: Date.now().toString(), name: form.name, total: parseInt(form.amount), sisa: parseInt(form.amount), note: form.note, date: form.date || new Date().toISOString().split("T")[0], history: [] }];
+    setPiutangs(updated); onPiutangChange(updated);
+    setShowAdd(false); setForm({ name: "", amount: "", note: "", date: "" });
   };
 
   const handleBayar = (p) => {
-    const amt = parseInt(bayarAmt);
-    if (!amt) return;
+    const amt = parseInt(bayarAmt); if (!amt) return;
     const newSisa = Math.max(0, p.sisa - amt);
-    const updated = piutangs.map(x => x.id === p.id ? {
-      ...x, sisa: newSisa,
-      history: [...(x.history || []), { amount: amt, date: new Date().toLocaleDateString("id-ID") }],
-      lunas: newSisa === 0
-    } : x);
-    setPiutangs(updated);
-    onPiutangChange(updated);
+    const updated = piutangs.map(x => x.id === p.id ? { ...x, sisa: newSisa, history: [...(x.history || []), { amount: amt, date: new Date().toLocaleDateString("id-ID") }], lunas: newSisa === 0 } : x);
+    setPiutangs(updated); onPiutangChange(updated);
     setShowBayar(null); setBayarAmt("");
+  };
+
+  const handleEditOpen = (p) => {
+    setEditForm({ name: p.name, amount: p.total, note: p.note || "", date: p.date || "" });
+    setEditingPiutang(p);
+  };
+
+  const handleEditSave = () => {
+    if (!editForm.name || !editForm.amount) return;
+    const newTotal = parseInt(editForm.amount);
+    const sudahDibayar = editingPiutang.total - editingPiutang.sisa;
+    const newSisa = Math.max(0, newTotal - sudahDibayar);
+    const updated = piutangs.map(p => p.id === editingPiutang.id ? { ...p, name: editForm.name, total: newTotal, sisa: newSisa, note: editForm.note, date: editForm.date, lunas: newSisa === 0 } : p);
+    setPiutangs(updated); onPiutangChange(updated); setEditingPiutang(null);
+  };
+
+  const handleDelete = (id) => {
+    if (!window.confirm("Hapus piutang ini?")) return;
+    const updated = piutangs.filter(p => p.id !== id);
+    setPiutangs(updated); onPiutangChange(updated);
   };
 
   const active = piutangs.filter(p => !p.lunas);
@@ -1128,11 +921,7 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
       </div>
 
       {totalAktif > 0 && (
-        <div style={{
-          background: "rgba(251,191,36,0.1)", border: "1.5px solid rgba(251,191,36,0.3)",
-          borderRadius: "var(--radius)", padding: "12px 16px", marginBottom: 14,
-          display: "flex", alignItems: "center", justifyContent: "space-between"
-        }}>
+        <div style={{ background: "rgba(251,191,36,0.1)", border: "1.5px solid rgba(251,191,36,0.3)", borderRadius: "var(--radius)", padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <div style={{ fontSize: 11.5, color: "var(--amber)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Total Piutang Aktif</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: "var(--amber)", letterSpacing: "-0.5px", marginTop: 2 }}>{fmtLong(totalAktif)}</div>
@@ -1142,20 +931,18 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
       )}
 
       {active.length === 0 && lunas.length === 0 && (
-        <div className="card">
-          <div className="empty-state">
-            <div className="emoji">🤝</div>
-            <p>Belum ada piutang</p>
-            <p className="empty-sub">Catat siapa yang punya hutang ke kamu</p>
-          </div>
-        </div>
+        <div className="card"><div className="empty-state"><div className="emoji">🤝</div><p>Belum ada piutang</p><p className="empty-sub">Catat siapa yang punya hutang ke kamu</p></div></div>
       )}
 
       {active.map(p => (
         <div key={p.id} className="debt-item">
           <div className="debt-header">
-            <div>
-              <div className="debt-name">{p.name}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div className="debt-name">{p.name}</div>
+                <button onClick={() => handleEditOpen(p)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Edit">✏️</button>
+                <button onClick={() => handleDelete(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Hapus">🗑️</button>
+              </div>
               <div className="debt-sisa">Pinjam {fmt(p.total)} · {p.date}</div>
               {p.note && <div className="debt-sisa">{p.note}</div>}
             </div>
@@ -1172,9 +959,7 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
               Cicilan: {p.history.map((h, i) => <span key={i}>{fmt(h.amount)} ({h.date}){i < p.history.length - 1 ? ", " : ""}</span>)}
             </div>
           )}
-          <div className="debt-actions">
-            <button className="debt-pay-btn" onClick={() => setShowBayar(p)}>+ Catat Bayar</button>
-          </div>
+          <div className="debt-actions"><button className="debt-pay-btn" onClick={() => setShowBayar(p)}>+ Catat Bayar</button></div>
         </div>
       ))}
 
@@ -1184,10 +969,8 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
           {lunas.map(p => (
             <div key={p.id} className="txn-item">
               <div className="txn-icon" style={{ background: "var(--green-dim)" }}>✅</div>
-              <div className="txn-info">
-                <div className="txn-name">{p.name}</div>
-                <div className="txn-meta">{fmt(p.total)} · {p.date}</div>
-              </div>
+              <div className="txn-info"><div className="txn-name">{p.name}</div><div className="txn-meta">{fmt(p.total)} · {p.date}</div></div>
+              <button onClick={() => handleDelete(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text3)", fontSize: 16, padding: "2px 6px" }}>×</button>
             </div>
           ))}
         </div>
@@ -1197,9 +980,7 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
         <div className="overlay" onClick={() => setShowAdd(false)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-title">Catat Piutang Baru</div>
-            <p style={{ fontSize: 12.5, color: "var(--text3)", marginBottom: 16, lineHeight: 1.5 }}>
-              💡 Piutang akan otomatis include dalam total saldo kamu
-            </p>
+            <p style={{ fontSize: 12.5, color: "var(--text3)", marginBottom: 16, lineHeight: 1.5 }}>💡 Piutang akan otomatis include dalam total saldo kamu</p>
             <div className="form-group"><label className="form-label">Nama Peminjam</label><input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="cth: Budi" /></div>
             <div className="form-group"><label className="form-label">Jumlah (Rp)</label><input className="form-input" type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="200000" /></div>
             <div className="form-group"><label className="form-label">Catatan</label><input className="form-input" value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="opsional" /></div>
@@ -1210,14 +991,28 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange }) {
         </div>
       )}
 
+      {editingPiutang && (
+        <div className="overlay" onClick={() => setEditingPiutang(null)}>
+          <div className="sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-title">Edit Piutang</div>
+            <div className="form-group"><label className="form-label">Nama Peminjam</label><input className="form-input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} autoFocus /></div>
+            <div className="form-group"><label className="form-label">Jumlah Total (Rp)</label><input className="form-input" type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })} /></div>
+            <div className="form-group"><label className="form-label">Catatan</label><input className="form-input" value={editForm.note} onChange={e => setEditForm({ ...editForm, note: e.target.value })} placeholder="opsional" /></div>
+            <div className="form-group"><label className="form-label">Tanggal</label><input className="form-input" type="date" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })} /></div>
+            <button className="btn-primary" onClick={handleEditSave}>Simpan</button>
+            <button className="btn-ghost" onClick={() => setEditingPiutang(null)}>Batal</button>
+          </div>
+        </div>
+      )}
+
       {showBayar && (
         <div className="overlay" onClick={() => setShowBayar(null)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-title">Catat Bayar dari {showBayar.name}</div>
             <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 14, fontWeight: 500 }}>Sisa hutang: {fmt(showBayar.sisa)}</div>
             <div className="form-group"><label className="form-label">Jumlah Bayar (Rp)</label>
-              <input className="form-input" type="number" value={bayarAmt} onChange={e => setBayarAmt(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleBayar(showBayar)} placeholder="100000" autoFocus /></div>
+              <input className="form-input" type="number" value={bayarAmt} onChange={e => setBayarAmt(e.target.value)} onKeyDown={e => e.key === "Enter" && handleBayar(showBayar)} placeholder="100000" autoFocus />
+            </div>
             <button className="btn-primary" onClick={() => handleBayar(showBayar)}>Simpan</button>
             <button className="btn-ghost" onClick={() => setShowBayar(null)}>Batal</button>
           </div>
@@ -1240,7 +1035,7 @@ export default function App() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [pendingParsed, setPendingParsed] = useState(null);
-  const [pendingMethod, setPendingMethod] = useState(null); // untuk account picker
+  const [pendingMethod, setPendingMethod] = useState(null);
   const [editingTxn, setEditingTxn] = useState(null);
   const [toast, setToast] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem("dompetku_theme") || "light");
@@ -1252,24 +1047,15 @@ export default function App() {
   const [showManageAssets, setShowManageAssets] = useState(false);
   const [includePiutang, setIncludePiutang] = useState(true);
 
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("dompetku_theme", theme);
-  }, [theme]);
-
+  useEffect(() => { document.documentElement.setAttribute("data-theme", theme); localStorage.setItem("dompetku_theme", theme); }, [theme]);
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => setUser(u));
-    return unsub;
-  }, []);
+  useEffect(() => { const unsub = onAuthStateChanged(auth, u => setUser(u)); return unsub; }, []);
 
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, `users/${user.uid}/transactions`), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, snap => {
-      setTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    const unsub = onSnapshot(q, snap => setTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     return unsub;
   }, [user]);
 
@@ -1283,8 +1069,7 @@ export default function App() {
     const sa = localStorage.getItem(`${key}_saldoAwal`); if (sa) setSaldoAwal(parseInt(sa));
     const ac = localStorage.getItem(`${key}_accounts`); if (ac) setAccounts(JSON.parse(ac));
     const as = localStorage.getItem(`${key}_assets`); if (as) setAssets(JSON.parse(as));
-    const ip = localStorage.getItem(`${key}_includePiutang`);
-    if (ip !== null) setIncludePiutang(ip === "true");
+    const ip = localStorage.getItem(`${key}_includePiutang`); if (ip !== null) setIncludePiutang(ip === "true");
   }, [user]);
 
   useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_savings`, JSON.stringify(savings)); }, [savings, user]);
@@ -1311,49 +1096,33 @@ export default function App() {
     try {
       const parsed = await parseTransactionInput(input);
       setPendingParsed({ ...parsed, rawInput: input });
-      // Tampilkan method popup dulu
-    } catch (e) {
-      showToast("Gagal parse transaksi 😢");
-    }
-    setLoading(false);
-    setInput("");
+    } catch (e) { showToast("Gagal parse transaksi 😢"); }
+    setLoading(false); setInput("");
   };
 
-  // Step 1: pilih method
   const handleMethodSelect = (method) => {
     if (!pendingParsed) return;
-    if (method === "cash") {
-      // Cash tidak perlu pilih rekening
-      saveTransaction({ ...pendingParsed, method, accountId: "cash", accountName: "Cash" });
-      setPendingParsed(null);
-    } else {
-      // QRIS/Transfer → tampilkan account picker
-      setPendingMethod(method);
-    }
+    if (method === "cash") { saveTransaction({ ...pendingParsed, method, accountId: "cash", accountName: "Cash" }); setPendingParsed(null); }
+    else setPendingMethod(method);
   };
 
-  // Step 2: pilih rekening (khusus QRIS/Transfer)
   const handleAccountSelect = (accountId) => {
     if (!pendingParsed || !pendingMethod) return;
     const acc = accounts.find(a => a.id === accountId);
     saveTransaction({ ...pendingParsed, method: pendingMethod, accountId, accountName: acc?.name || "" });
-    setPendingParsed(null);
-    setPendingMethod(null);
+    setPendingParsed(null); setPendingMethod(null);
   };
 
   const saveTransaction = async (parsed) => {
+    // Transaksi selalu disimpan dengan tanggal hari ini
     await addDoc(collection(db, `users/${user.uid}/transactions`), {
-      description: parsed.description,
-      amount: parsed.amount,
-      category: parsed.category,
-      type: parsed.type,
-      method: parsed.method,
-      accountId: parsed.accountId || null,
+      description: parsed.description, amount: parsed.amount,
+      category: parsed.category, type: parsed.type,
+      method: parsed.method, accountId: parsed.accountId || null,
       accountName: parsed.accountName || null,
-      createdAt: new Date()
+      createdAt: new Date()  // ← tanggal hari ini otomatis
     });
-    const newStreak = streak + 1;
-    setStreak(newStreak);
+    const newStreak = streak + 1; setStreak(newStreak);
     localStorage.setItem(`dompetku_${user.uid}_streak`, newStreak);
     showToast(`✅ ${parsed.description} · ${fmt(parsed.amount)}`);
   };
@@ -1367,40 +1136,20 @@ export default function App() {
   const handleEdit = async (form) => {
     if (!editingTxn) return;
     await updateDoc(doc(db, `users/${user.uid}/transactions`, editingTxn.id), {
-      description: form.description,
-      amount: form.amount,
-      category: form.category,
-      type: form.type,
-      method: form.method,
+      description: form.description, amount: form.amount,
+      category: form.category, type: form.type, method: form.method,
     });
-    setEditingTxn(null);
-    showToast("✏️ Transaksi diperbarui");
+    setEditingTxn(null); showToast("✏️ Transaksi diperbarui");
   };
 
   const handleSaldoSave = (val) => {
-    setSaldoAwal(val);
-    localStorage.setItem(`dompetku_${user?.uid}_saldoAwal`, val);
-    setShowSaldoPopup(false);
-    showToast(`💳 Saldo awal: ${fmt(val)}`);
+    setSaldoAwal(val); localStorage.setItem(`dompetku_${user?.uid}_saldoAwal`, val);
+    setShowSaldoPopup(false); showToast(`💳 Saldo awal: ${fmt(val)}`);
   };
 
-  const handleSaveAccounts = (updated) => {
-    setAccounts(updated);
-    setShowManageAccounts(false);
-    showToast("💳 Rekening diperbarui");
-  };
-
-  const handleSaveAssets = (updated) => {
-    setAssets(updated);
-    setShowManageAssets(false);
-    showToast("💍 Aset diperbarui");
-  };
-
-  // Piutang change callback — untuk update saldo realtime
-  const handlePiutangChange = (updated) => {
-    setPiutangs(updated);
-  };
-
+  const handleSaveAccounts = (updated) => { setAccounts(updated); setShowManageAccounts(false); showToast("💳 Rekening diperbarui"); };
+  const handleSaveAssets = (updated) => { setAssets(updated); setShowManageAssets(false); showToast("💍 Aset diperbarui"); };
+  const handlePiutangChange = (updated) => setPiutangs(updated);
   const handleKeyDown = (e) => { if (e.key === "Enter") handleSubmit(); };
 
   const userInitial = user?.email ? user.email[0].toUpperCase() : "?";
@@ -1414,140 +1163,68 @@ export default function App() {
     { id: "piutang", label: "Piutang", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg> },
   ];
 
-  if (user === undefined) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)" }}>
-        <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3, borderColor: "rgba(99,102,241,0.25)", borderTopColor: "#6366f1" }} />
-      </div>
-    );
-  }
+  if (user === undefined) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)" }}>
+      <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3, borderColor: "rgba(99,102,241,0.25)", borderTopColor: "#6366f1" }} />
+    </div>
+  );
 
   if (!user) return <LoginPage />;
 
   return (
     <div className="app">
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
-
-      {/* Step 1: Method picker */}
-      {pendingParsed && !pendingMethod && (
-        <MethodPopup
-          parsed={pendingParsed}
-          onSelect={handleMethodSelect}
-          onCancel={() => setPendingParsed(null)}
-        />
-      )}
-
-      {/* Step 2: Account picker (QRIS/Transfer) */}
-      {pendingParsed && pendingMethod && (
-        <AccountPickerPopup
-          method={pendingMethod}
-          parsed={pendingParsed}
-          accounts={accounts}
-          onSelect={handleAccountSelect}
-          onCancel={() => { setPendingParsed(null); setPendingMethod(null); }}
-        />
-      )}
-
+      {pendingParsed && !pendingMethod && <MethodPopup parsed={pendingParsed} onSelect={handleMethodSelect} onCancel={() => setPendingParsed(null)} />}
+      {pendingParsed && pendingMethod && <AccountPickerPopup method={pendingMethod} parsed={pendingParsed} accounts={accounts} onSelect={handleAccountSelect} onCancel={() => { setPendingParsed(null); setPendingMethod(null); }} />}
       {editingTxn && <EditPopup txn={editingTxn} onSave={handleEdit} onCancel={() => setEditingTxn(null)} />}
       {showSaldoPopup && <SaldoAwalPopup current={saldoAwal} onSave={handleSaldoSave} onCancel={() => setShowSaldoPopup(false)} />}
       {showManageAccounts && <ManageAccountsPopup accounts={accounts} onSave={handleSaveAccounts} onCancel={() => setShowManageAccounts(false)} />}
       {showManageAssets && <AssetsPopup assets={assets} onSave={handleSaveAssets} onCancel={() => setShowManageAssets(false)} />}
 
-      {/* ── Sidebar ── */}
       <aside className="sidebar">
-        <div className="sidebar-brand">
-          <span className="brand-icon">💰</span>
-          <span className="brand-name">Dompetku</span>
-        </div>
+        <div className="sidebar-brand"><span className="brand-icon">💰</span><span className="brand-name">Dompetku</span></div>
         {streak > 0 && <div className="streak-badge sidebar-streak">🔥 {streak} transaksi</div>}
         <nav className="sidebar-nav">
           {NAV.map(n => (
             <button key={n.id} className={`sidebar-item ${page === n.id ? "active" : ""}`} onClick={() => setPage(n.id)}>
-              <span className="sidebar-icon">{n.icon}</span>
-              <span>{n.label}</span>
+              <span className="sidebar-icon">{n.icon}</span><span>{n.label}</span>
             </button>
           ))}
         </nav>
         <div className="sidebar-footer">
-          <button className="theme-btn" onClick={toggleTheme}>
-            {theme === "dark" ? "☀️" : "🌙"} {theme === "dark" ? "Mode Terang" : "Mode Gelap"}
-          </button>
+          <button className="theme-btn" onClick={toggleTheme}>{theme === "dark" ? "☀️" : "🌙"} {theme === "dark" ? "Mode Terang" : "Mode Gelap"}</button>
           <button className="sidebar-item logout-btn" onClick={() => signOut(auth)}>
-            <span className="sidebar-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-            </span>
+            <span className="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg></span>
             <span>Keluar</span>
           </button>
         </div>
       </aside>
 
-      {/* ── Mobile Header ── */}
       <header className="mobile-header">
-        <div className="mobile-brand">
-          <span>💰</span>
-          <span>Dompetku</span>
-          {streak > 0 && <span className="streak-badge">🔥 {streak}</span>}
-        </div>
+        <div className="mobile-brand"><span>💰</span><span>Dompetku</span>{streak > 0 && <span className="streak-badge">🔥 {streak}</span>}</div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="icon-btn" onClick={toggleTheme}>{theme === "dark" ? "☀️" : "🌙"}</button>
-          <button className="icon-btn" onClick={() => signOut(auth)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-          </button>
+          <button className="icon-btn" onClick={() => signOut(auth)}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg></button>
         </div>
       </header>
 
-      {/* ── Main Content ── */}
       <main className="main-wrapper">
         <div className="main-content">
           {page === "dashboard" && (
             <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <div className="page-greeting">👋 Halo, {userName.charAt(0).toUpperCase() + userName.slice(1)}!</div>
-                <div className="page-sub">Kelola keuanganmu dengan lebih bijak</div>
-              </div>
-              <div style={{
-                width: 40, height: 40, borderRadius: "50%",
-                background: "var(--hero-gradient)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontWeight: 800, fontSize: 16, flexShrink: 0,
-                boxShadow: "0 4px 12px var(--hero-glow)"
-              }}>{userInitial}</div>
+              <div><div className="page-greeting">👋 Halo, {userName.charAt(0).toUpperCase() + userName.slice(1)}!</div><div className="page-sub">Kelola keuanganmu dengan lebih bijak</div></div>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--hero-gradient)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16, flexShrink: 0, boxShadow: "0 4px 12px var(--hero-glow)" }}>{userInitial}</div>
             </div>
           )}
 
           <div className="quick-input-bar">
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder='cth: "kopi 15rb cash" atau "gaji 5jt"'
-              disabled={loading}
-            />
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder='cth: "kopi 15rb cash" atau "gaji 5jt"' disabled={loading} />
             <button className="send-btn" onClick={handleSubmit} disabled={loading || !input.trim()}>
-              {loading
-                ? <div className="spinner" />
-                : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Catat</>
-              }
+              {loading ? <div className="spinner" /> : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Catat</>}
             </button>
           </div>
 
-          {page === "dashboard" && (
-            <Dashboard
-              transactions={transactions}
-              budgets={budgets}
-              savings={savings}
-              saldoAwal={saldoAwal}
-              onSetSaldoAwal={() => setShowSaldoPopup(true)}
-              onAddTxn={() => { const el = document.querySelector(".quick-input-bar input"); if (el) el.focus(); }}
-              piutangs={piutangs}
-              includePiutang={includePiutang}
-              onTogglePiutang={() => setIncludePiutang(p => !p)}
-              accounts={accounts}
-              assets={assets}
-              onManageAccounts={() => setShowManageAccounts(true)}
-              onManageAssets={() => setShowManageAssets(true)}
-            />
-          )}
+          {page === "dashboard" && <Dashboard transactions={transactions} budgets={budgets} savings={savings} saldoAwal={saldoAwal} onSetSaldoAwal={() => setShowSaldoPopup(true)} onAddTxn={() => { const el = document.querySelector(".quick-input-bar input"); if (el) el.focus(); }} piutangs={piutangs} includePiutang={includePiutang} onTogglePiutang={() => setIncludePiutang(p => !p)} accounts={accounts} assets={assets} onManageAccounts={() => setShowManageAccounts(true)} onManageAssets={() => setShowManageAssets(true)} />}
           {page === "transactions" && <Transactions transactions={transactions} onDelete={handleDelete} onEdit={setEditingTxn} />}
           {page === "budget" && <Budget transactions={transactions} budgets={budgets} setBudgets={setBudgets} onOverspend={handleOverspend} />}
           {page === "savings" && <Savings savings={savings} setSavings={setSavings} />}
@@ -1555,12 +1232,9 @@ export default function App() {
         </div>
       </main>
 
-      {/* ── Mobile Bottom Nav ── */}
       <nav className="bottom-nav">
         {NAV.map(n => (
-          <button key={n.id} className={`nav-item ${page === n.id ? "active" : ""}`} onClick={() => setPage(n.id)}>
-            {n.icon}{n.label}
-          </button>
+          <button key={n.id} className={`nav-item ${page === n.id ? "active" : ""}`} onClick={() => setPage(n.id)}>{n.icon}{n.label}</button>
         ))}
       </nav>
     </div>
