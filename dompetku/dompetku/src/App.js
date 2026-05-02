@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import "./index.css";
 import { db, auth } from "./firebase";
 import {
-  collection, addDoc, deleteDoc, doc, updateDoc,
+  collection, addDoc, deleteDoc, doc, updateDoc, setDoc, getDoc,
   query, orderBy, onSnapshot
 } from "firebase/firestore";
 import {
@@ -60,6 +60,25 @@ const DEFAULT_ACCOUNTS = [
   { id: "bank-lampung", name: "Bank Lampung", icon: "🏛️", balance: 0, color: "#8b5cf6" },
   { id: "cash", name: "Cash", icon: "💵", balance: 0, color: "#22c55e" },
 ];
+
+// ─── Firestore helpers untuk data user (simpan sebagai 1 dokumen per koleksi) ─
+// Pola: users/{uid}/userdata/{docName} → field berisi array JSON
+
+async function loadUserData(uid, docName, fallback) {
+  try {
+    const ref = doc(db, `users/${uid}/userdata`, docName);
+    const snap = await getDoc(ref);
+    if (snap.exists()) return snap.data().value ?? fallback;
+    return fallback;
+  } catch { return fallback; }
+}
+
+async function saveUserData(uid, docName, value) {
+  try {
+    const ref = doc(db, `users/${uid}/userdata`, docName);
+    await setDoc(ref, { value });
+  } catch (e) { console.error("saveUserData error", e); }
+}
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
@@ -341,7 +360,6 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
 
   const totalPiutangAktif = piutangs.filter(p => !p.lunas).reduce((s, p) => s + p.sisa, 0);
 
-  // ── Saldo Saat Ini = total rekening + aset + (opsional piutang) ──
   const totalRekening = accounts.reduce((s, a) => s + (a.balance || 0), 0);
   const totalAsetBenda = assets.reduce((s, a) => s + (a.value || 0), 0);
   const saldo = totalRekening + totalAsetBenda + (includePiutang ? totalPiutangAktif : 0);
@@ -396,7 +414,6 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
 
   return (
     <div>
-      {/* ── Hero + Insight ── */}
       <div className="dashboard-top-row">
         <div className="hero-card">
           <div className="hero-wallet-illustration">💳</div>
@@ -437,7 +454,6 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
         </div>
       </div>
 
-      {/* ── Rekening & Aset (tanpa Total Kekayaan) ── */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px" }}>Rekening & Aset</div>
@@ -464,7 +480,6 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
         </div>
       </div>
 
-      {/* ── 4 Metric Cards ── */}
       <div className="metrics-grid">
         <div className="metric-card">
           <div className="metric-icon-wrap green">↓</div>
@@ -492,7 +507,6 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
         </div>
       </div>
 
-      {/* ── Chart + Recent ── */}
       <div className="chart-txn-row">
         <div className="card" style={{ marginBottom: 0 }}>
           <div className="card-header-row"><div className="card-title">Tren Pengeluaran</div><div className="card-dropdown">6 Bulan Terakhir ▾</div></div>
@@ -569,9 +583,7 @@ function Transactions({ transactions, onDelete, onEdit }) {
 
   return (
     <div>
-      {/* ── Rekap Bulanan ── */}
       <div style={{ background: "var(--bg2)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "16px 18px", marginBottom: 16, boxShadow: "var(--card-shadow)" }}>
-        {/* Navigasi bulan */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <button onClick={prevMonth} style={{ background: "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "6px 14px", cursor: "pointer", color: "var(--text)", fontSize: 16, fontWeight: 700, lineHeight: 1 }}>‹</button>
           <div style={{ textAlign: "center" }}>
@@ -580,8 +592,6 @@ function Transactions({ transactions, onDelete, onEdit }) {
           </div>
           <button onClick={nextMonth} disabled={isCurrentMonth} style={{ background: isCurrentMonth ? "transparent" : "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "6px 14px", cursor: isCurrentMonth ? "default" : "pointer", color: isCurrentMonth ? "var(--text3)" : "var(--text)", fontSize: 16, fontWeight: 700, lineHeight: 1, opacity: isCurrentMonth ? 0.4 : 1 }}>›</button>
         </div>
-
-        {/* 3 kolom ringkasan */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
           <div style={{ background: "rgba(34,197,94,0.08)", border: "1.5px solid rgba(34,197,94,0.2)", borderRadius: "var(--radius)", padding: "10px 12px", textAlign: "center" }}>
             <div style={{ fontSize: 10, color: "var(--green)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: 4 }}>Pemasukan</div>
@@ -601,12 +611,10 @@ function Transactions({ transactions, onDelete, onEdit }) {
         )}
       </div>
 
-      {/* ── Filter ── */}
       <div className="tabs">
         {cats.map(c => <button key={c} className={`tab-btn ${filter === c ? "active" : ""}`} onClick={() => setFilter(c)}>{c === "semua" ? "Semua" : c}</button>)}
       </div>
 
-      {/* ── List ── */}
       <div className="card">
         {sorted.length === 0 ? (
           <div className="empty-state">
@@ -652,9 +660,13 @@ function Budget({ transactions, budgets, setBudgets, onOverspend }) {
   const handleSave = () => {
     if (!form.limit) return;
     const existing = budgets.findIndex(b => b.category === form.category);
+    let updated;
     if (existing >= 0) {
-      const updated = [...budgets]; updated[existing] = { ...updated[existing], limit: parseInt(form.limit) }; setBudgets(updated);
-    } else setBudgets([...budgets, { category: form.category, limit: parseInt(form.limit) }]);
+      updated = [...budgets]; updated[existing] = { ...updated[existing], limit: parseInt(form.limit) };
+    } else {
+      updated = [...budgets, { category: form.category, limit: parseInt(form.limit) }];
+    }
+    setBudgets(updated);
     setShowAdd(false); setForm({ category: "Makanan & Minuman", limit: "" });
   };
 
@@ -695,8 +707,8 @@ function Budget({ transactions, budgets, setBudgets, onOverspend }) {
                   <span className="budget-pct" style={{ color: over ? "var(--red)" : pct > 80 ? "var(--amber)" : "var(--text3)" }}>
                     {fmtLong(spent)} / {fmtLong(b.limit)}
                   </span>
-                  <button onClick={() => setEditingBudget({ ...b })} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Edit">✏️</button>
-                  <button onClick={() => handleDelete(b.category)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Hapus">🗑️</button>
+                  <button onClick={() => setEditingBudget({ ...b })} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }}>✏️</button>
+                  <button onClick={() => handleDelete(b.category)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }}>🗑️</button>
                 </div>
               </div>
               <div className="progress-wrap">
@@ -802,8 +814,8 @@ function Savings({ savings, setSavings }) {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
                   <div className="saving-name">{sv.name}</div>
                   <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                    <button onClick={() => handleEditOpen(sv)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Edit">✏️</button>
-                    <button onClick={() => handleDelete(sv.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Hapus">🗑️</button>
+                    <button onClick={() => handleEditOpen(sv)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }}>✏️</button>
+                    <button onClick={() => handleDelete(sv.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }}>🗑️</button>
                   </div>
                 </div>
                 <div className="saving-meta">
@@ -875,7 +887,6 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
   const [form, setForm] = useState({ name: "", amount: "", note: "", date: "" });
   const [editForm, setEditForm] = useState({ name: "", amount: "", note: "", date: "" });
   const [bayarAmt, setBayarAmt] = useState("");
-  // Step bayar: null → "input_amt" → "pilih_method" → "pilih_rekening"
   const [bayarStep, setBayarStep] = useState("input_amt");
 
   const handleAdd = () => {
@@ -902,7 +913,6 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
     } : x);
     setPiutangs(updated); onPiutangChange(updated);
 
-    // Update saldo rekening yang dipilih
     if (accountId && accountId !== "cash_only") {
       const updatedAccs = accounts.map(a => a.id === accountId ? { ...a, balance: (a.balance || 0) + amt } : a);
       onUpdateAccounts(updatedAccs);
@@ -962,8 +972,8 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div className="debt-name">{p.name}</div>
-                <button onClick={() => handleEditOpen(p)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Edit">✏️</button>
-                <button onClick={() => handleDelete(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }} title="Hapus">🗑️</button>
+                <button onClick={() => handleEditOpen(p)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }}>✏️</button>
+                <button onClick={() => handleDelete(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--red)", fontSize: 13, padding: "2px 4px", borderRadius: 4 }}>🗑️</button>
               </div>
               <div className="debt-sisa">Pinjam {fmtLong(p.total)} · {p.date}</div>
               {p.note && <div className="debt-sisa">{p.note}</div>}
@@ -1030,39 +1040,28 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
       {showBayar && (
         <div className="overlay" onClick={() => { setShowBayar(null); setBayarAmt(""); setBayarStep("input_amt"); }}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
-
-            {/* Step 1: Input jumlah */}
             {bayarStep === "input_amt" && (
               <>
                 <div className="sheet-title">Catat Bayar dari {showBayar.name}</div>
                 <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 14, fontWeight: 500 }}>Sisa hutang: {fmtLong(showBayar.sisa)}</div>
                 <div className="form-group"><label className="form-label">Jumlah Bayar (Rp)</label>
-                  <input className="form-input" type="number" value={bayarAmt} onChange={e => setBayarAmt(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && handleBayarLanjut()} placeholder="100000" autoFocus />
+                  <input className="form-input" type="number" value={bayarAmt} onChange={e => setBayarAmt(e.target.value)} onKeyDown={e => e.key === "Enter" && handleBayarLanjut()} placeholder="100000" autoFocus />
                 </div>
                 <button className="btn-primary" onClick={handleBayarLanjut} disabled={!bayarAmt}>Lanjut →</button>
                 <button className="btn-ghost" onClick={() => { setShowBayar(null); setBayarAmt(""); setBayarStep("input_amt"); }}>Batal</button>
               </>
             )}
-
-            {/* Step 2: Pilih Cash atau Bank */}
             {bayarStep === "pilih_method" && (
               <>
                 <div className="sheet-title">Uang masuk ke mana?</div>
                 <div className="method-subtitle">🤝 {showBayar.name} bayar {fmtLong(parseInt(bayarAmt) || 0)}</div>
                 <div className="method-buttons">
-                  <button className="method-btn" onClick={() => handleBayar(showBayar, "cash", "cash")}>
-                    <span>💵</span>Cash
-                  </button>
-                  <button className="method-btn" onClick={() => setBayarStep("pilih_rekening")}>
-                    <span>🏦</span>Bank
-                  </button>
+                  <button className="method-btn" onClick={() => handleBayar(showBayar, "cash", "cash")}><span>💵</span>Cash</button>
+                  <button className="method-btn" onClick={() => setBayarStep("pilih_rekening")}><span>🏦</span>Bank</button>
                 </div>
                 <button className="btn-ghost" style={{ marginTop: 8 }} onClick={() => setBayarStep("input_amt")}>← Kembali</button>
               </>
             )}
-
-            {/* Step 3: Pilih rekening bank */}
             {bayarStep === "pilih_rekening" && (
               <>
                 <div className="sheet-title">Masuk rekening mana?</div>
@@ -1070,10 +1069,7 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {accounts.filter(a => a.id !== "cash").map(acc => (
                     <button key={acc.id} onClick={() => handleBayar(showBayar, "transfer", acc.id)}
-                      style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius)", cursor: "pointer", transition: "all 0.18s", textAlign: "left" }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--sidebar-active-bg)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg3)"; }}
-                    >
+                      style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "var(--bg3)", border: "1.5px solid var(--border)", borderRadius: "var(--radius)", cursor: "pointer", textAlign: "left" }}>
                       <div style={{ width: 40, height: 40, borderRadius: 10, background: (acc.color || "#6366f1") + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{acc.icon}</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{acc.name}</div>
@@ -1086,7 +1082,6 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
                 <button className="btn-ghost" style={{ marginTop: 8 }} onClick={() => setBayarStep("pilih_method")}>← Kembali</button>
               </>
             )}
-
           </div>
         </div>
       )}
@@ -1118,12 +1113,15 @@ export default function App() {
   const [showManageAccounts, setShowManageAccounts] = useState(false);
   const [showManageAssets, setShowManageAssets] = useState(false);
   const [includePiutang, setIncludePiutang] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => { document.documentElement.setAttribute("data-theme", theme); localStorage.setItem("dompetku_theme", theme); }, [theme]);
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
+  // ── Auth listener ──
   useEffect(() => { const unsub = onAuthStateChanged(auth, u => setUser(u)); return unsub; }, []);
 
+  // ── Load transactions dari Firestore (realtime) ──
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, `users/${user.uid}/transactions`), orderBy("createdAt", "desc"));
@@ -1131,25 +1129,69 @@ export default function App() {
     return unsub;
   }, [user]);
 
+  // ── Load semua data user dari Firestore (sekali saat login) ──
   useEffect(() => {
     if (!user) return;
-    const key = `dompetku_${user.uid}`;
-    const s = localStorage.getItem(`${key}_savings`); if (s) setSavings(JSON.parse(s));
-    const p = localStorage.getItem(`${key}_piutangs`); if (p) setPiutangs(JSON.parse(p));
-    const b = localStorage.getItem(`${key}_budgets`); if (b) setBudgets(JSON.parse(b));
-    const st = localStorage.getItem(`${key}_streak`); if (st) setStreak(parseInt(st));
-    const sa = localStorage.getItem(`${key}_saldoAwal`); if (sa) setSaldoAwal(parseInt(sa));
-    const ac = localStorage.getItem(`${key}_accounts`); if (ac) setAccounts(JSON.parse(ac));
-    const as = localStorage.getItem(`${key}_assets`); if (as) setAssets(JSON.parse(as));
-    const ip = localStorage.getItem(`${key}_includePiutang`); if (ip !== null) setIncludePiutang(ip === "true");
+    setDataLoaded(false);
+    const uid = user.uid;
+
+    Promise.all([
+      loadUserData(uid, "savings", []),
+      loadUserData(uid, "piutangs", []),
+      loadUserData(uid, "budgets", BUDGETS_DEFAULT),
+      loadUserData(uid, "accounts", DEFAULT_ACCOUNTS),
+      loadUserData(uid, "assets", []),
+      loadUserData(uid, "streak", 0),
+      loadUserData(uid, "saldoAwal", 0),
+      loadUserData(uid, "includePiutang", true),
+    ]).then(([sv, pi, bu, ac, as, st, sa, ip]) => {
+      setSavings(sv);
+      setPiutangs(pi);
+      setBudgets(bu);
+      setAccounts(ac);
+      setAssets(as);
+      setStreak(st);
+      setSaldoAwal(sa);
+      setIncludePiutang(ip);
+      setDataLoaded(true);
+    });
   }, [user]);
 
-  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_savings`, JSON.stringify(savings)); }, [savings, user]);
-  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_piutangs`, JSON.stringify(piutangs)); }, [piutangs, user]);
-  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_budgets`, JSON.stringify(budgets)); }, [budgets, user]);
-  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_accounts`, JSON.stringify(accounts)); }, [accounts, user]);
-  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_assets`, JSON.stringify(assets)); }, [assets, user]);
-  useEffect(() => { if (!user) return; localStorage.setItem(`dompetku_${user.uid}_includePiutang`, includePiutang); }, [includePiutang, user]);
+  // ── Sync savings ke Firestore setiap kali berubah ──
+  useEffect(() => {
+    if (!user || !dataLoaded) return;
+    saveUserData(user.uid, "savings", savings);
+  }, [savings, user, dataLoaded]);
+
+  // ── Sync piutangs ke Firestore ──
+  useEffect(() => {
+    if (!user || !dataLoaded) return;
+    saveUserData(user.uid, "piutangs", piutangs);
+  }, [piutangs, user, dataLoaded]);
+
+  // ── Sync budgets ke Firestore ──
+  useEffect(() => {
+    if (!user || !dataLoaded) return;
+    saveUserData(user.uid, "budgets", budgets);
+  }, [budgets, user, dataLoaded]);
+
+  // ── Sync accounts ke Firestore ──
+  useEffect(() => {
+    if (!user || !dataLoaded) return;
+    saveUserData(user.uid, "accounts", accounts);
+  }, [accounts, user, dataLoaded]);
+
+  // ── Sync assets ke Firestore ──
+  useEffect(() => {
+    if (!user || !dataLoaded) return;
+    saveUserData(user.uid, "assets", assets);
+  }, [assets, user, dataLoaded]);
+
+  // ── Sync includePiutang ke Firestore ──
+  useEffect(() => {
+    if (!user || !dataLoaded) return;
+    saveUserData(user.uid, "includePiutang", includePiutang);
+  }, [includePiutang, user, dataLoaded]);
 
   const showToast = (msg) => setToast(msg);
 
@@ -1186,7 +1228,6 @@ export default function App() {
   };
 
   const saveTransaction = async (parsed) => {
-    // Simpan transaksi dengan tanggal hari ini
     await addDoc(collection(db, `users/${user.uid}/transactions`), {
       description: parsed.description, amount: parsed.amount,
       category: parsed.category, type: parsed.type,
@@ -1195,7 +1236,6 @@ export default function App() {
       createdAt: new Date()
     });
 
-    // ── Update saldo rekening otomatis ──
     if (parsed.accountId) {
       const updatedAccounts = accounts.map(a => {
         if (a.id !== parsed.accountId) return a;
@@ -1205,8 +1245,9 @@ export default function App() {
       setAccounts(updatedAccounts);
     }
 
-    const newStreak = streak + 1; setStreak(newStreak);
-    localStorage.setItem(`dompetku_${user.uid}_streak`, newStreak);
+    const newStreak = streak + 1;
+    setStreak(newStreak);
+    saveUserData(user.uid, "streak", newStreak);
     showToast(`✅ ${parsed.description} · ${fmtLong(parsed.amount)}`);
   };
 
@@ -1226,7 +1267,8 @@ export default function App() {
   };
 
   const handleSaldoSave = (val) => {
-    setSaldoAwal(val); localStorage.setItem(`dompetku_${user?.uid}_saldoAwal`, val);
+    setSaldoAwal(val);
+    saveUserData(user.uid, "saldoAwal", val);
     setShowSaldoPopup(false); showToast(`💳 Saldo awal: ${fmtLong(val)}`);
   };
 
@@ -1255,6 +1297,14 @@ export default function App() {
 
   if (!user) return <LoginPage />;
 
+  // Tampilkan loading saat data sedang diambil dari Firestore
+  if (!dataLoaded) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)", gap: 16 }}>
+      <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3, borderColor: "rgba(99,102,241,0.25)", borderTopColor: "#6366f1" }} />
+      <div style={{ fontSize: 13, color: "var(--text3)", fontWeight: 600 }}>Memuat data kamu...</div>
+    </div>
+  );
+
   return (
     <div className="app">
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
@@ -1276,7 +1326,7 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <button className="theme-btn" onClick={toggleTheme}>{theme === "dark" ? "☀️" : "🌙"} {theme === "dark" ? "Mode Terang" : "Mode Gelap"}</button>
+          <button className="theme-btn" onClick={toggleTheme}>{theme === "dark" ? "☀️" : "Mode Terang"} {theme === "dark" ? "" : "🌙 Mode Gelap"}</button>
           <button className="sidebar-item logout-btn" onClick={() => signOut(auth)}>
             <span className="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg></span>
             <span>Keluar</span>
