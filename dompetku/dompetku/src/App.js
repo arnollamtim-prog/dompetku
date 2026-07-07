@@ -622,22 +622,58 @@ function Transactions({ transactions, onDelete, onEdit }) {
             <p>Tidak ada transaksi</p>
             <p className="empty-sub">{filter !== "semua" ? "Coba pilih kategori lain" : `Belum ada transaksi di ${bulanLabel}`}</p>
           </div>
-        ) : sorted.map(t => (
-          <div key={t.id} className="txn-item">
-            <div className="txn-icon" style={{ background: (CATEGORY_COLORS[t.category] || "#94a3b8") + "20" }}>{CATEGORY_ICONS[t.category] || "📌"}</div>
-            <div className="txn-info">
-              <div className="txn-name">{t.description}</div>
-              <div className="txn-meta">{t.category} · {fmtDate(t.createdAt)} · {t.method || "—"}{t.accountName ? ` · ${t.accountName}` : ""}</div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-              <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>{t.type === "income" ? "+" : "−"}{fmtLong(t.amount)}</div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button className="action-link edit" onClick={() => onEdit(t)}>edit</button>
-                <button className="action-link delete" onClick={() => onDelete(t.id)}>hapus</button>
+        ) : (() => {
+          // Kelompokkan transaksi per hari
+          const groups = [];
+          let currentKey = null;
+          sorted.forEach(t => {
+            const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || 0);
+            const key = d.toDateString();
+            if (key !== currentKey) {
+              groups.push({ key, date: d, items: [] });
+              currentKey = key;
+            }
+            groups[groups.length - 1].items.push(t);
+          });
+
+          return groups.map(group => {
+            const dayIncome = group.items.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+            const dayExpense = group.items.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+            const dayNet = dayIncome - dayExpense;
+            const dayLabel = group.date.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
+
+            return (
+              <div key={group.key}>
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "10px 4px", marginTop: 4,
+                  borderBottom: "1.5px solid var(--border)"
+                }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text3)" }}>{dayLabel}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: dayNet >= 0 ? "var(--green)" : "var(--red)" }}>
+                    {dayNet >= 0 ? "+" : "−"}{fmtLong(Math.abs(dayNet))}
+                  </div>
+                </div>
+                {group.items.map(t => (
+                  <div key={t.id} className="txn-item">
+                    <div className="txn-icon" style={{ background: (CATEGORY_COLORS[t.category] || "#94a3b8") + "20" }}>{CATEGORY_ICONS[t.category] || "📌"}</div>
+                    <div className="txn-info">
+                      <div className="txn-name">{t.description}</div>
+                      <div className="txn-meta">{t.category} · {fmtDate(t.createdAt)} · {t.method || "—"}{t.accountName ? ` · ${t.accountName}` : ""}</div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                      <div className={`txn-amt ${t.type === "income" ? "inc" : "out"}`}>{t.type === "income" ? "+" : "−"}{fmtLong(t.amount)}</div>
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <button className="action-link edit" onClick={() => onEdit(t)}>edit</button>
+                        <button className="action-link delete" onClick={() => onDelete(t.id)}>hapus</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          </div>
-        ))}
+            );
+          });
+        })()}
       </div>
     </div>
   );
