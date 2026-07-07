@@ -646,13 +646,13 @@ function Transactions({ transactions, onDelete, onEdit }) {
               <div key={group.key}>
                 <div style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "10px 14px", marginTop: 10, marginBottom: 2,
-                  background: "var(--bg3)",
-                  border: "1.5px solid var(--border)",
+                  padding: "11px 16px", marginTop: 10, marginBottom: 2,
+                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
                   borderRadius: "var(--radius-sm)",
+                  boxShadow: "0 4px 12px rgba(99,102,241,0.35)",
                 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>{dayLabel}</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 800, color: dayNet >= 0 ? "var(--green)" : "var(--red)" }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#fff", letterSpacing: "-0.2px" }}>{dayLabel}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>
                     {dayNet >= 0 ? "+" : "−"}{fmtLong(Math.abs(dayNet))}
                   </div>
                 </div>
