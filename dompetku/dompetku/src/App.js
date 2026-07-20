@@ -63,14 +63,17 @@ const DEFAULT_ACCOUNTS = [
 
 // ─── Firestore helpers untuk data user (simpan sebagai 1 dokumen per koleksi) ─
 // Pola: users/{uid}/userdata/{docName} → field berisi array JSON
+//
+// PENTING: fungsi ini TIDAK BOLEH menelan error jadi fallback diam-diam.
+// Kalau getDoc() gagal (network/permission/dsb), itu HARUS dibedakan dari
+// "dokumen memang belum ada". Kalau disamakan, data yang gagal di-fetch akan
+// dianggap "kosong" lalu ke-overwrite jadi kosong beneran oleh auto-save.
 
 async function loadUserData(uid, docName, fallback) {
-  try {
-    const ref = doc(db, `users/${uid}/userdata`, docName);
-    const snap = await getDoc(ref);
-    if (snap.exists()) return snap.data().value ?? fallback;
-    return fallback;
-  } catch { return fallback; }
+  const ref = doc(db, `users/${uid}/userdata`, docName);
+  const snap = await getDoc(ref); // sengaja TIDAK di-try/catch di sini
+  if (snap.exists()) return snap.data().value ?? fallback;
+  return fallback; // ini "memang belum ada dokumennya" — fallback aman dipakai di sini
 }
 
 async function saveUserData(uid, docName, value) {
@@ -347,7 +350,7 @@ function LoginPage() {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, onAddTxn,
-  piutangs, includePiutang, onTogglePiutang, accounts, assets, onManageAccounts, onManageAssets }) {
+  piutangs, includePiutang, onTogglePiutang, accounts, assets, onManageAccounts, onManageAssets, onRecalculate }) {
   const now = new Date();
 
   const thisMonth = transactions.filter(t => {
@@ -424,7 +427,7 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
               rekening {fmtLong(totalRekening)} · aset {fmtLong(totalAsetBenda)}{includePiutang && totalPiutangAktif > 0 ? ` · piutang ${fmtLong(totalPiutangAktif)}` : ""}
             </div>
           </div>
-          <div style={{ position: "relative", zIndex: 1, marginTop: 12 }}>
+          <div style={{ position: "relative", zIndex: 1, marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <div onClick={e => { e.stopPropagation(); onTogglePiutang(); }} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 99, padding: "6px 12px", cursor: "pointer" }}>
               <div style={{ width: 30, height: 17, background: includePiutang ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.18)", borderRadius: 99, position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
                 <div style={{ position: "absolute", top: 2, left: includePiutang ? 15 : 2, width: 13, height: 13, background: "#fff", borderRadius: "50%", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
@@ -460,6 +463,7 @@ function Dashboard({ transactions, budgets, savings, saldoAwal, onSetSaldoAwal, 
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={onManageAccounts} style={{ background: "none", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", color: "var(--accent)", fontSize: 12, fontWeight: 700, padding: "5px 12px", cursor: "pointer" }}>⚙️ Rekening</button>
             <button onClick={onManageAssets} style={{ background: "none", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", color: "var(--amber)", fontSize: 12, fontWeight: 700, padding: "5px 12px", cursor: "pointer" }}>💍 Aset</button>
+            <button onClick={onRecalculate} title="Hitung ulang saldo dari riwayat transaksi" style={{ background: "none", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", color: "var(--green)", fontSize: 12, fontWeight: 700, padding: "5px 12px", cursor: "pointer" }}>🔄 Recalc Saldo</button>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
@@ -1152,6 +1156,10 @@ export default function App() {
   const [showManageAssets, setShowManageAssets] = useState(false);
   const [includePiutang, setIncludePiutang] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
+  // BARU: kalau load data user gagal (bukan karena "belum ada data", tapi
+  // beneran gagal fetch), kita tandai di sini supaya kita TIDAK diam-diam
+  // lanjut pakai nilai default dan TIDAK menyalakan auto-save.
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => { document.documentElement.setAttribute("data-theme", theme); localStorage.setItem("dompetku_theme", theme); }, [theme]);
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
@@ -1168,9 +1176,10 @@ export default function App() {
   }, [user]);
 
   // ── Load semua data user dari Firestore (sekali saat login) ──
-  useEffect(() => {
+  const loadAllUserData = useCallback(() => {
     if (!user) return;
     setDataLoaded(false);
+    setLoadError(null);
     const uid = user.uid;
 
     Promise.all([
@@ -1191,9 +1200,18 @@ export default function App() {
       setStreak(st);
       setSaldoAwal(sa);
       setIncludePiutang(ip);
+      // Baru sekarang aman untuk menyalakan auto-save, karena kita PASTI
+      // berhasil ambil data asli dari Firestore (bukan fallback diam-diam).
       setDataLoaded(true);
+    }).catch((e) => {
+      console.error("Gagal memuat data user:", e);
+      // JANGAN setDataLoaded(true) di sini — itu yang tadinya memicu
+      // auto-save menimpa data asli dengan nilai default/kosong.
+      setLoadError(e);
     });
   }, [user]);
+
+  useEffect(() => { loadAllUserData(); }, [loadAllUserData]);
 
   // ── Sync savings ke Firestore setiap kali berubah ──
   useEffect(() => {
@@ -1316,6 +1334,28 @@ export default function App() {
   const handlePiutangChange = (updated) => setPiutangs(updated);
   const handleKeyDown = (e) => { if (e.key === "Enter") handleSubmit(); };
 
+  // ── RECOVERY: hitung ulang saldo tiap rekening dari total riwayat transaksi ──
+  // Ini untuk memperbaiki saldo yang sebelumnya sempat ke-reset ke 0 oleh bug lama.
+  // Cara pakai: dari halaman Dashboard, klik "🔄 Recalc Saldo".
+  // Logic: saldo akhir tiap rekening = saldoAwal (kalau accountId "cash" pakai
+  // saldoAwal sebagai basis) + jumlah semua transaksi income dikurangi expense
+  // yang accountId-nya cocok dengan rekening tsb.
+  const handleRecalculateBalances = () => {
+    if (!window.confirm(
+      "Ini akan menghitung ulang saldo tiap rekening dari SEMUA riwayat transaksi kamu, lalu menimpa saldo yang sekarang. Lanjutkan?"
+    )) return;
+
+    const recalculated = accounts.map(acc => {
+      const net = transactions
+        .filter(t => t.accountId === acc.id)
+        .reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0);
+      return { ...acc, balance: net };
+    });
+
+    setAccounts(recalculated);
+    showToast("🔄 Saldo dihitung ulang dari riwayat transaksi");
+  };
+
   const userInitial = user?.email ? user.email[0].toUpperCase() : "?";
   const userName = user?.email ? user.email.split("@")[0] : "Pengguna";
 
@@ -1334,6 +1374,17 @@ export default function App() {
   );
 
   if (!user) return <LoginPage />;
+
+  // BARU: kalau load data gagal, JANGAN diam-diam lanjut pakai data kosong.
+  // Kasih tau user dan kasih tombol coba lagi, daripada nimpa saldo asli diam-diam.
+  if (loadError) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)", gap: 16, padding: 24, textAlign: "center" }}>
+      <div style={{ fontSize: 36 }}>⚠️</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Gagal memuat data kamu</div>
+      <div style={{ fontSize: 13, color: "var(--text3)", maxWidth: 320 }}>Koneksi mungkin lagi bermasalah. Data kamu aman, coba muat ulang.</div>
+      <button className="btn-primary" style={{ marginTop: 0 }} onClick={loadAllUserData}>Coba Lagi</button>
+    </div>
+  );
 
   // Tampilkan loading saat data sedang diambil dari Firestore
   if (!dataLoaded) return (
@@ -1396,7 +1447,7 @@ export default function App() {
             </button>
           </div>
 
-          {page === "dashboard" && <Dashboard transactions={transactions} budgets={budgets} savings={savings} saldoAwal={saldoAwal} onSetSaldoAwal={() => setShowSaldoPopup(true)} onAddTxn={() => { const el = document.querySelector(".quick-input-bar input"); if (el) el.focus(); }} piutangs={piutangs} includePiutang={includePiutang} onTogglePiutang={() => setIncludePiutang(p => !p)} accounts={accounts} assets={assets} onManageAccounts={() => setShowManageAccounts(true)} onManageAssets={() => setShowManageAssets(true)} />}
+          {page === "dashboard" && <Dashboard transactions={transactions} budgets={budgets} savings={savings} saldoAwal={saldoAwal} onSetSaldoAwal={() => setShowSaldoPopup(true)} onAddTxn={() => { const el = document.querySelector(".quick-input-bar input"); if (el) el.focus(); }} piutangs={piutangs} includePiutang={includePiutang} onTogglePiutang={() => setIncludePiutang(p => !p)} accounts={accounts} assets={assets} onManageAccounts={() => setShowManageAccounts(true)} onManageAssets={() => setShowManageAssets(true)} onRecalculate={handleRecalculateBalances} />}
           {page === "transactions" && <Transactions transactions={transactions} onDelete={handleDelete} onEdit={setEditingTxn} />}
           {page === "budget" && <Budget transactions={transactions} budgets={budgets} setBudgets={setBudgets} onOverspend={handleOverspend} />}
           {page === "savings" && <Savings savings={savings} setSavings={setSavings} />}
