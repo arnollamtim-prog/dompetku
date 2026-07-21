@@ -956,8 +956,9 @@ function Piutang({ piutangs, setPiutangs, onPiutangChange, accounts, onUpdateAcc
     setPiutangs(updated); onPiutangChange(updated);
 
     if (accountId && accountId !== "cash_only") {
-      const updatedAccs = accounts.map(a => a.id === accountId ? { ...a, balance: (a.balance || 0) + amt } : a);
-      onUpdateAccounts(updatedAccs);
+      // functional update supaya aman kalau ada perubahan saldo lain yang
+      // bersamaan (mis. baru saja input transaksi lain)
+      onUpdateAccounts(prevAccounts => prevAccounts.map(a => a.id === accountId ? { ...a, balance: (a.balance || 0) + amt } : a));
     }
 
     setShowBayar(null); setBayarAmt(""); setBayarStep("input_amt");
@@ -1283,6 +1284,9 @@ export default function App() {
     setPendingParsed(null); setPendingMethod(null);
   };
 
+  // FIX #3: pakai functional updater (prev => ...) supaya kalau ada beberapa
+  // transaksi ditambahkan dengan cepat berurutan, update saldo yang satu
+  // tidak menimpa update saldo yang lain (stale state race condition).
   const saveTransaction = async (parsed) => {
     await addDoc(collection(db, `users/${user.uid}/transactions`), {
       description: parsed.description, amount: parsed.amount,
@@ -1293,12 +1297,11 @@ export default function App() {
     });
 
     if (parsed.accountId) {
-      const updatedAccounts = accounts.map(a => {
+      setAccounts(prev => prev.map(a => {
         if (a.id !== parsed.accountId) return a;
         const delta = parsed.type === "income" ? parsed.amount : -parsed.amount;
         return { ...a, balance: (a.balance || 0) + delta };
-      });
-      setAccounts(updatedAccounts);
+      }));
     }
 
     const newStreak = streak + 1;
@@ -1307,18 +1310,47 @@ export default function App() {
     showToast(`✅ ${parsed.description} · ${fmtLong(parsed.amount)}`);
   };
 
+  // FIX #1: hapus transaksi sekarang membalikkan efeknya ke saldo rekening.
+  // Sebelumnya fungsi ini cuma deleteDoc tanpa pernah menyentuh accounts,
+  // jadi transaksi hilang dari daftar tapi saldo tetap seperti waktu
+  // transaksi itu masih ada.
   const handleDelete = async (id) => {
     if (!window.confirm("Hapus transaksi ini?")) return;
+    const txn = transactions.find(t => t.id === id);
     await deleteDoc(doc(db, `users/${user.uid}/transactions`, id));
+
+    if (txn?.accountId) {
+      setAccounts(prev => prev.map(a => {
+        if (a.id !== txn.accountId) return a;
+        // dibalik dari efek aslinya: income yang tadinya nambah → dikurangi, expense yang tadinya ngurangi → ditambah
+        const revertDelta = txn.type === "income" ? -txn.amount : txn.amount;
+        return { ...a, balance: (a.balance || 0) + revertDelta };
+      }));
+    }
+
     showToast("🗑️ Transaksi dihapus");
   };
 
+  // FIX #2: edit transaksi sekarang menyesuaikan saldo juga — efek transaksi
+  // lama dibalikkan dulu, baru efek transaksi baru (versi hasil edit) diterapkan.
+  // Rekeningnya tetap sama seperti transaksi asli (accountId tidak diedit di form).
   const handleEdit = async (form) => {
     if (!editingTxn) return;
     await updateDoc(doc(db, `users/${user.uid}/transactions`, editingTxn.id), {
       description: form.description, amount: form.amount,
       category: form.category, type: form.type, method: form.method,
     });
+
+    const accountId = editingTxn.accountId;
+    if (accountId) {
+      setAccounts(prev => prev.map(a => {
+        if (a.id !== accountId) return a;
+        const oldDelta = editingTxn.type === "income" ? editingTxn.amount : -editingTxn.amount;
+        const newDelta = form.type === "income" ? form.amount : -form.amount;
+        return { ...a, balance: (a.balance || 0) - oldDelta + newDelta };
+      }));
+    }
+
     setEditingTxn(null); showToast("✏️ Transaksi diperbarui");
   };
 
@@ -1329,7 +1361,12 @@ export default function App() {
   };
 
   const handleSaveAccounts = (updated) => { setAccounts(updated); setShowManageAccounts(false); showToast("💳 Rekening diperbarui"); };
-  const handleUpdateAccountsSilent = (updated) => { setAccounts(updated); };
+  // Sekarang mendukung baik nilai array langsung maupun functional updater (prev => ...),
+  // supaya pemanggil (mis. Piutang) bisa update saldo dengan aman berbasis state terbaru.
+  const handleUpdateAccountsSilent = (updatedOrFn) => {
+    if (typeof updatedOrFn === "function") setAccounts(updatedOrFn);
+    else setAccounts(updatedOrFn);
+  };
   const handleSaveAssets = (updated) => { setAssets(updated); setShowManageAssets(false); showToast("💍 Aset diperbarui"); };
   const handlePiutangChange = (updated) => setPiutangs(updated);
   const handleKeyDown = (e) => { if (e.key === "Enter") handleSubmit(); };
@@ -1337,22 +1374,20 @@ export default function App() {
   // ── RECOVERY: hitung ulang saldo tiap rekening dari total riwayat transaksi ──
   // Ini untuk memperbaiki saldo yang sebelumnya sempat ke-reset ke 0 oleh bug lama.
   // Cara pakai: dari halaman Dashboard, klik "🔄 Recalc Saldo".
-  // Logic: saldo akhir tiap rekening = saldoAwal (kalau accountId "cash" pakai
-  // saldoAwal sebagai basis) + jumlah semua transaksi income dikurangi expense
-  // yang accountId-nya cocok dengan rekening tsb.
+  // Logic: saldo akhir tiap rekening = jumlah semua transaksi income dikurangi
+  // expense yang accountId-nya cocok dengan rekening tsb (sesuai riwayat yang
+  // masih ada — transaksi yang sudah dihapus otomatis tidak ikut terhitung).
   const handleRecalculateBalances = () => {
     if (!window.confirm(
       "Ini akan menghitung ulang saldo tiap rekening dari SEMUA riwayat transaksi kamu, lalu menimpa saldo yang sekarang. Lanjutkan?"
     )) return;
 
-    const recalculated = accounts.map(acc => {
+    setAccounts(prev => prev.map(acc => {
       const net = transactions
         .filter(t => t.accountId === acc.id)
         .reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0);
       return { ...acc, balance: net };
-    });
-
-    setAccounts(recalculated);
+    }));
     showToast("🔄 Saldo dihitung ulang dari riwayat transaksi");
   };
 
